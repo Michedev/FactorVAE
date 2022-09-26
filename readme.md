@@ -1,4 +1,4 @@
-# Deep Learning Template
+# FactorVAE
 
 This is a template for deep learning projects based on _Pytorch, Pytorch Lightning, Poetry and Hydra_.
 

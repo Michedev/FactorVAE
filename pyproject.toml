@@ -1,15 +1,14 @@
 [tool.poetry]
-name = "deep_learning_template"
+name = "factor_vae"
 version = "0.1.0"
-description = ""
-authors = [""]  # Add your "name <email>" here
+description = "FactorVAE implementation in PyTorch"
+authors = ["mikedev <mik3dev@gmail.com>"]  # Add your "name <email>" here
 include = [
     'config/*'
 ]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-torch = "^1.12.0"
 matplotlib = "^3.5.2"
 pytorch-lightning = "^1.6.5"
 seaborn = "^0.11.2"

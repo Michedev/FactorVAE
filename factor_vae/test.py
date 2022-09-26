@@ -9,10 +9,10 @@ import pytorch_lightning as pl
 import omegaconf
 import os
 import yaml
-from deep_learning_template.utils.paths import CODE_MODEL
+from factor_vae.utils.paths import CODE_MODEL
 
 
-@hydra.main(pkg_resources.resource_filename("deep_learning_template", 'config'), 'test.yaml')
+@hydra.main(pkg_resources.resource_filename("factor_vae", 'config'), 'test.yaml')
 def test(config: DictConfig):
     ckpt_folder = Path(config.checkpoint_path)
     assert ckpt_folder.exists() and ckpt_folder.isdir(), f"Checkpoint {ckpt_folder} does not exist or is not a directory"
@@ -22,7 +22,7 @@ def test(config: DictConfig):
 
     ckpt_config = OmegaConf.load(ckpt_folder / 'config.yaml')
 
-    trainer = Trainer(resume_from_checkpoint=ckpt_folder / 'best.ckpt')
+    trainer = pl.Trainer(resume_from_checkpoint=ckpt_folder / 'best.ckpt')
 
     model: pl.LightningModule = hydra.utils.instantiate(ckpt_config.model)
 

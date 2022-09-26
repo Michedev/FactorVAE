@@ -1,0 +1,12 @@
+d: 10
+opt_vae:
+  _partial_: true
+  _target_: torch.optim.Adam
+  lr: 1e-4
+opt_discriminator:
+  _partial_: true
+  _target_: torch.optim.Adam
+  lr: 1e-4
+  betas: [0.5, 0.9]
+encoder:
+  

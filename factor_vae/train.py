@@ -8,10 +8,10 @@ from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 import omegaconf
 import os
-from deep_learning_template.utils.paths import CODE_MODEL
+from factor_vae.utils.paths import CODE_MODEL
 
 
-@hydra.main(pkg_resources.resource_filename("deep_learning_template", 'config'), 'train.yaml')
+@hydra.main(pkg_resources.resource_filename("factor_vae", 'config'), 'train.yaml')
 def train(config: DictConfig):
     ckpt = None
     pl.seed_everything(config.seed)
@@ -25,6 +25,7 @@ def train(config: DictConfig):
     model: pl.LightningModule = hydra.utils.instantiate(config.model)
     train_dataset: Dataset = hydra.utils.instantiate(config.dataset.train)
     val_dataset: Dataset = hydra.utils.instantiate(config.dataset.val)
+    config.batch_size = config.batch_size * 2 # each training step requires two batches as specified in the paper
 
     CODE_MODEL.copy('model')  # copy source code of model under experiment directory
 
