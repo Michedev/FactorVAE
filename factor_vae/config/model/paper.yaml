@@ -1,4 +1,5 @@
 d: 10
+latent_size: 10
 opt_vae:
   _partial_: true
   _target_: torch.optim.Adam
@@ -9,4 +10,81 @@ opt_discriminator:
   lr: 1e-4
   betas: [0.5, 0.9]
 encoder:
-  
+  _target_: torch.nn.Sequential
+  _args_:
+    - _target_: torch.nn.Conv2d
+      in_channels: ${dataset.input_channels}
+      out_channels: 32
+      kernel_size: 4
+      stride: 2
+    - _target_: torch.nn.ReLU
+    - _target_: torch.nn.Conv2d
+      in_channels: 32
+      out_channels: 32
+      kernel_size: 4
+      stride: 2
+    - _target_: torch.nn.ReLU
+    - _target_: torch.nn.Conv2d
+      in_channels: 32
+      out_channels: 64
+      kernel_size: 4
+      stride: 2
+    - _target_: torch.nn.ReLU
+    - _target_: torch.nn.Conv2d
+      in_channels: 64
+      out_channels: 64
+      kernel_size: 4
+      stride: 2
+    - _target_: torch.nn.ReLU
+    - _target_: torch.nn.Flatten
+      start_dim: 1
+    - _target_: torch.nn.Linear
+      in_features: 256
+      out_features: 128
+    - _target_: torch.nn.ReLU
+    - _target_: torch.nn.Linear
+      in_features: 128
+      out_features: ${prod:${model.latent_size},2}
+decoder:
+    _target_: torch.nn.Sequential
+    _args_:
+        - _target_: torch.nn.Linear
+          in_features: ${model.latent_size}
+          out_features: 128
+        - _target_: torch.nn.ReLU
+        - _target_: torch.nn.Linear
+          in_features: 128
+          out_features: 1024  # 64 * 4 * 4
+        - _target_: torch.nn.ReLU
+        - _target_: torch.nn.Unflatten
+          dim: 1
+          unflattened_size: [64, 4, 4]
+        - _target_: torch.nn.ConvTranspose2d
+          in_channels: 64
+          out_channels: 64
+          stride: 2
+          kernel_size: 4
+        - _target_: torch.nn.ReLU
+        - _target_: torch.nn.ConvTranspose2d
+          in_channels: 64
+          out_channels: 32
+          stride: 2
+          kernel_size: 4
+        - _target_: torch.nn.ReLU
+        - _target_: torch.nn.ConvTranspose2d
+          in_channels: 32
+          out_channels: 32
+          stride: 2
+          kernel_size: 4
+        - _target_: torch.nn.ReLU
+        - _target_: torch.nn.ConvTranspose2d
+          in_channels: 32
+          out_channels: 32
+          stride: 2
+          kernel_size: 4
+        - _target_: torch.nn.ReLU
+        - _target_: torch.nn.ConvTranspose2d
+          in_channels: 32
+          out_channels: ${dataset.input_channels}
+          stride: 2
+          kernel_size: 4

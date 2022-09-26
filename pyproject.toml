@@ -16,6 +16,7 @@ numpy = "^1.23.1"
 path = "^16.4.0"
 hydra-core = "^1.2.0"
 torchvision = "^0.13.0"
+torch = "^1.12.1"
 
 [tool.poetry.dev-dependencies]
 poethepoet = "^0.15.0"

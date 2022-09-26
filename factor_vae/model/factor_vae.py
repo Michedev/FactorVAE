@@ -1,15 +1,21 @@
 from itertools import chain
+from math import prod
 
 import pytorch_lightning as pl
 from functools import partial
 import torch
 from torch import nn
 from torch import distributions
+import omegaconf
 
+omegaconf.OmegaConf.register_new_resolver('sum', lambda *x: sum(float(el) for el in x))
+omegaconf.OmegaConf.register_new_resolver('prod', lambda *x: prod(float(el) for el in x))
+nn.Unflatten
 class FactorVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, discriminator: nn.Module,
-                 opt_vae: partial, opt_discriminator: partial, d: int, gamma: float):
+                 opt_vae: partial, opt_discriminator: partial, d: int, gamma: float,
+                 latent_size: int):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
@@ -19,7 +25,9 @@ class FactorVAE(pl.LightningModule):
         self.d = d  # permutation rounds
         self.mse = nn.MSELoss()
         self.gamma = gamma
-        self.prior = distribution.Normal(0, 1)
+        self.latent_size = latent_size
+        self.prior = distributions.Normal(0, 1)
+        self.automatic_optimization = False
 
     def forward(self, x: torch.Tensor):
         post_mu, post_logvar = self.encoder(x).chunk(2, dim=-1)
@@ -37,22 +45,30 @@ class FactorVAE(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, _ = batch
         x1, x2 = x.chunk(2, dim=0)  # each training step requires two batches as specified in the paper
+        opt_vae, opt_d = self.optimizers()
+        opt_vae.zero_grad()
+        opt_d.zero_grad()
         vae_result = self(x1)
         z = vae_result['z']
         d_output: torch.Tensor = self.discriminator(z)
         log_d_output = d_output.log()
         reconstruction_loss = self.mse(x, vae_result['x_hat'])  # note: authors use negative crossentropy here
-        loss1 = reconstruction_loss - distributions.kl_divergence(distributions.Normal(vae_result['post_mu'], vae_result['post_std']), self.prior).log() \
+        loss_vae = reconstruction_loss - distributions.kl_divergence(
+            distributions.Normal(vae_result['post_mu'], vae_result['post_std']), self.prior).log() \
                 - self.gamma * log_d_output / (1 - d_output)
-        loss1 = loss1.sum() / x1.shape[0]
+        loss_vae = loss_vae.sum() / x1.shape[0]
         vae_result = self(x2)
         z_hat = vae_result['z']
         z_perm = self.permute(z_hat)
         d_output_2 = self.discriminator(z_perm)
 
-        loss2 = log_d_output + (1 - d_output_2).log()
-        loss2 = loss2.sum() / x.shape[0]
-        return [loss1, loss2]
+        loss_discriminator = log_d_output + (1 - d_output_2).log()
+        loss_discriminator = loss_discriminator.sum() / x.shape[0]
+        self.manual_backward(loss_vae)
+        opt_vae.step()
+        self.manual_backward(loss_discriminator)
+        opt_d.step()
+        return [loss_vae, loss_discriminator]
 
     def configure_optimizers(self):
         opt1 = self._opt_vae(params=chain(self.encoder.parameters(), self.decoder.parameters()))
@@ -61,6 +77,7 @@ class FactorVAE(pl.LightningModule):
 
     def permute(self, z: torch.Tensor):
         latent_size: int = z.shape[-1]
-        pi = torch.arange(latent_size)
         for _ in range(self.d):
-            torch.random.shuffle(pi)
+            pi = torch.randperm(latent_size)
+            z = z[:, pi]
+        return z
