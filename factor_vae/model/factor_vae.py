@@ -10,7 +10,7 @@ import omegaconf
 
 omegaconf.OmegaConf.register_new_resolver('sum', lambda *x: sum(float(el) for el in x))
 omegaconf.OmegaConf.register_new_resolver('prod', lambda *x: prod(float(el) for el in x))
-nn.Unflatten
+
 class FactorVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, discriminator: nn.Module,
