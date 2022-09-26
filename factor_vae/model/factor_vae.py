@@ -1,16 +1,11 @@
+from functools import partial
 from itertools import chain
-from math import prod
 
 import pytorch_lightning as pl
-from functools import partial
-import torch
-from torch import nn
-from torch import distributions
-import omegaconf
 import tensorguard as tg
-
-omegaconf.OmegaConf.register_new_resolver('sum', lambda *x: sum(float(el) for el in x))
-omegaconf.OmegaConf.register_new_resolver('prod', lambda *x: prod(float(el) for el in x))
+import torch
+from torch import distributions
+from torch import nn
 
 
 class FactorVAE(pl.LightningModule):
