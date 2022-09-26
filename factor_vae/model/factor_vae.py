@@ -69,7 +69,26 @@ class FactorVAE(pl.LightningModule):
             self.log('train/loss_discriminator', loss_discriminator, prog_bar=True)
             self.log('train/loss', loss)
         self.iteration += 1
-        return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator, )
+        return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
+
+    def validation_step(self, batch, batch_idx) -> dict:
+        x = batch['image']
+        x1, x2 = x.chunk(2, dim=0)  # each training step requires two batches as specified in the paper
+        tg.guard(x1, '*, 1, W, H')
+        tg.guard(x2, '*, 1, W, H')
+
+        vae_result_x1 = self(x1)
+        loss_vae = self.calc_loss_vae(vae_result_x1, x1)
+        vae_result_x2 = self(x2)
+
+        loss_discriminator = self.calc_discriminator_loss(vae_result_x2, x)
+
+        loss = loss_vae + loss_discriminator
+        self.log('valid/loss_vae', loss_vae, prog_bar=True)
+        self.log('valid/loss_discriminator', loss_discriminator, prog_bar=True)
+        self.log('valid/loss', loss)
+        return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
+
 
     def optimization_step_(self, loss_vae, loss_discriminator, opt_vae, opt_d):
         self.manual_backward(loss_vae)

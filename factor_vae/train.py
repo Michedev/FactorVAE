@@ -25,7 +25,7 @@ def train(config: DictConfig):
     model: pl.LightningModule = hydra.utils.instantiate(config.model)
     train_dataset: Dataset = hydra.utils.instantiate(config.dataset.train)
     val_dataset: Dataset = hydra.utils.instantiate(config.dataset.val)
-    config.batch_size = config.batch_size * 2 # each training step requires two batches as specified in the paper
+    config.batch_size = config.batch_size * 2  # each training step requires two batches as specified in the paper
 
     CODE_MODEL.copy('model')  # copy source code of model under experiment directory
 
@@ -35,16 +35,16 @@ def train(config: DictConfig):
     train_dl = DataLoader(train_dataset, batch_size=config.batch_size, pin_memory=pin_memory)
     val_dl = DataLoader(val_dataset, batch_size=config.batch_size, pin_memory=pin_memory)
     ckpt_callback = ModelCheckpoint('./', 'best',
-                                    monitor='loss/valid_loss_epoch',
+                                    monitor='valid/vae_loss_epoch',
                                     auto_insert_metric_name=False, save_last=True)
     callbacks = [ckpt_callback]
     if config.early_stop:
-        callbacks.append(EarlyStopping('loss/valid_loss_epoch', min_delta=config.min_delta,
+        callbacks.append(EarlyStopping('valid/vae_loss_epoch', min_delta=config.min_delta,
                                        patience=config.patience))
     trainer = pl.Trainer(callbacks=callbacks, accelerator=config.accelerator, devices=config.devices,
                          gradient_clip_val=config.gradient_clip_val,
                          gradient_clip_algorithm=config.gradient_clip_algorithm,
-                         resume_from_checkpoint=ckpt, max_steps=config.max_steps,)
+                         resume_from_checkpoint=ckpt, max_steps=config.max_steps)
     trainer.fit(model, train_dl, val_dl)
 
 
