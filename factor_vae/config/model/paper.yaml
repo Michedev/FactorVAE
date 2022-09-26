@@ -88,3 +88,8 @@ decoder:
           out_channels: ${dataset.input_channels}
           stride: 2
           kernel_size: 4
+discriminator:
+    _target_: factor_vae.model.discriminator.make_sequential_discriminator
+    input_size: ${model.latent_size}
+    hidden_size: 128
+    num_hidden_layers: 3
