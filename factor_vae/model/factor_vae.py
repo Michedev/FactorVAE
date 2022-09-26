@@ -17,7 +17,7 @@ class FactorVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, discriminator: nn.Module,
                  opt_vae: partial, opt_discriminator: partial, d: int, gamma: float,
-                 latent_size: int):
+                 latent_size: int, log_freq: int):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
@@ -30,6 +30,8 @@ class FactorVAE(pl.LightningModule):
         self.latent_size = latent_size
         self.prior = distributions.Normal(0, 1)
         self.automatic_optimization = False
+        self.log_freq = log_freq
+        self.iteration = 0
 
     def forward(self, x: torch.Tensor):
         post_mu, post_logvar = self.encoder(x).chunk(2, dim=-1)
@@ -60,11 +62,13 @@ class FactorVAE(pl.LightningModule):
 
         self.optimization_step_(loss_vae, loss_discriminator, opt_vae, opt_d)
 
-        self.log('train/loss_vae', loss_vae, prog_bar=True)
-        self.log('train/loss_discriminator', loss_discriminator, prog_bar=True)
         with torch.no_grad():
             loss = loss_vae + loss_discriminator
-        self.log('train/loss', loss)
+        if self.iteration % self.log_freq == 0:
+            self.log('train/loss_vae', loss_vae, prog_bar=True)
+            self.log('train/loss_discriminator', loss_discriminator, prog_bar=True)
+            self.log('train/loss', loss)
+        self.iteration += 1
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator, )
 
     def optimization_step_(self, loss_vae, loss_discriminator, opt_vae, opt_d):
