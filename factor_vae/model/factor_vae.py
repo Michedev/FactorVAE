@@ -90,20 +90,20 @@ class FactorVAE(pl.LightningModule):
         loss_discriminator = loss_discriminator.sum() / x.shape[0]
         return loss_discriminator
 
-    def calc_loss_vae(self, vae_result, x1):
+    def calc_loss_vae(self, vae_result_x1, x1):
         """
         Compute the loss for the VAE part of the model. The loss is composed by the standard vAE loss,
         i.e. reconstruction loss and the KL, plus the discriminator loss.
-        :param vae_result: dict of VAE results
+        :param vae_result_x1: dict of VAE results on first half of the batch
         :param x1: input images
         :return: vae scalar loss
         """
-        z = vae_result['z']
+        z = vae_result_x1['z']
         d_output: torch.Tensor = self.discriminator(z)
         log_d_output = d_output.log()
-        log_reconstruction_loss = distributions.Bernoulli(logits=vae_result['x_hat']).log_prob(
+        log_reconstruction_loss = distributions.Bernoulli(logits=vae_result_x1['x_hat']).log_prob(
             x1).sum()  # note: authors use negative crossentropy here
-        post_z = distributions.Normal(vae_result['post_mu'], vae_result['post_std'])
+        post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         log_kl = distributions.kl_divergence(post_z, self.prior).log().sum()
         loss_vae = - log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output).log().sum())
         loss_vae = loss_vae / x1.shape[0]
