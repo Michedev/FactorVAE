@@ -14,6 +14,7 @@ from factor_vae.utils.paths import CODE_MODEL
 @hydra.main(pkg_resources.resource_filename("factor_vae", 'config'), 'train.yaml')
 def train(config: DictConfig):
     ckpt = None
+    print(config.model)
     pl.seed_everything(config.seed)
     if config.ckpt is not None:
         ckpt = Path(config.ckpt)
@@ -21,7 +22,7 @@ def train(config: DictConfig):
         config = OmegaConf.load(ckpt / 'config.yaml')
         os.chdir(ckpt.abspath())
     with open('config.yaml', 'w') as f:
-        omegaconf.OmegaConf.save(config, f)
+        omegaconf.OmegaConf.save(config, f, resolve=True)
     model: pl.LightningModule = hydra.utils.instantiate(config.model)
     train_dataset: Dataset = hydra.utils.instantiate(config.dataset.train)
     val_dataset: Dataset = hydra.utils.instantiate(config.dataset.val)

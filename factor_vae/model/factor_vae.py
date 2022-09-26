@@ -84,7 +84,6 @@ class FactorVAE(pl.LightningModule):
         self.log('valid/loss', loss)
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
 
-
     def optimization_step_(self, loss_vae, loss_discriminator, opt_vae, opt_d):
         self.manual_backward(loss_vae)
         opt_vae.step()
@@ -115,8 +114,8 @@ class FactorVAE(pl.LightningModule):
         z = vae_result_x1['z']
         d_output: torch.Tensor = self.discriminator(z)
         log_d_output = d_output.log()
-        log_reconstruction_loss = distributions.Bernoulli(logits=vae_result_x1['x_hat']).log_prob(
-            x1).sum()  # note: authors use negative crossentropy here
+        log_reconstruction_loss = distributions.Bernoulli(logits=vae_result_x1['x_hat'])\
+            .log_prob(x1).sum()  # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         log_kl = distributions.kl_divergence(post_z, self.prior).log().sum()
         loss_vae = - log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output).log().sum())

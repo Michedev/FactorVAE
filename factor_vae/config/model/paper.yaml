@@ -39,12 +39,12 @@ encoder:
     - _target_: torch.nn.Flatten
       start_dim: 1
     - _target_: torch.nn.Linear
-      in_features: 256
+      in_features: 1024
       out_features: 128
     - _target_: torch.nn.ReLU
     - _target_: torch.nn.Linear
       in_features: 128
-      out_features: ${prod:${model.latent_size},2}
+      out_features: ${intprod:${model.latent_size},2}
 decoder:
     _target_: torch.nn.Sequential
     _args_:
