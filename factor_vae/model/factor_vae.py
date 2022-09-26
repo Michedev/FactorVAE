@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from torch import distributions
 import omegaconf
+import tensorguard as tg
 
 omegaconf.OmegaConf.register_new_resolver('sum', lambda *x: sum(float(el) for el in x))
 omegaconf.OmegaConf.register_new_resolver('prod', lambda *x: prod(float(el) for el in x))
@@ -34,6 +35,7 @@ class FactorVAE(pl.LightningModule):
         post_std = torch.exp(0.5 * post_logvar)
         z = post_mu + post_std * torch.randn_like(post_logvar)
         x_hat = self.decoder(z)
+        tg.guard(x_hat, '*, 1, W, H')
         return dict(z=z, x_hat=x_hat, post_mu=post_mu, post_std=post_std)
 
     def forward_encoder(self, x: torch.Tensor):
@@ -45,6 +47,8 @@ class FactorVAE(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, _ = batch
         x1, x2 = x.chunk(2, dim=0)  # each training step requires two batches as specified in the paper
+        tg.guard(x1, '*, 1, W, H')
+        tg.guard(x2, '*, 1, W, H')
         opt_vae, opt_d = self.optimizers()
         opt_vae.zero_grad()
         opt_d.zero_grad()
