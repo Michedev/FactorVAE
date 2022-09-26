@@ -4,7 +4,7 @@ import subprocess
 from torch.utils.data import Dataset
 from factor_vae.utils.paths import DATA, ROOT
 import h5py
-
+import torch
 
 class DSpritesImages(Dataset):
     """
@@ -34,7 +34,7 @@ class DSpritesImages(Dataset):
         return self.dataset_len
 
     def __getitem__(self, i) -> dict:
-        image = self.dsprites['imgs'][i].float() / 255.0
+        image = torch.tensor(self.dsprites['imgs'][i]).float() / 255.0
         image = image.view(1, 64, 64)
         return dict(image=image)
 
