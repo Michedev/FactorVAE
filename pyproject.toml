@@ -17,6 +17,7 @@ path = "^16.4.0"
 hydra-core = "^1.2.0"
 torchvision = "^0.13.0"
 torch = "^1.12.1"
+h5py = "^3.7.0"
 
 [tool.poetry.dev-dependencies]
 poethepoet = "^0.15.0"
@@ -25,3 +26,6 @@ tensorguard = "^1.0.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poe.tasks]
+download-dsprites = "wget https://github.com/deepmind/dsprites-dataset/raw/master/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5 -P data"

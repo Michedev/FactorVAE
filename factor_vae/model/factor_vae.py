@@ -12,6 +12,7 @@ import tensorguard as tg
 omegaconf.OmegaConf.register_new_resolver('sum', lambda *x: sum(float(el) for el in x))
 omegaconf.OmegaConf.register_new_resolver('prod', lambda *x: prod(float(el) for el in x))
 
+
 class FactorVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, discriminator: nn.Module,
@@ -45,34 +46,64 @@ class FactorVAE(pl.LightningModule):
         return dict(z=z, post_mu=post_mu, post_std=post_std)
 
     def training_step(self, batch, batch_idx):
-        x, _ = batch
+        x = batch['image']
         x1, x2 = x.chunk(2, dim=0)  # each training step requires two batches as specified in the paper
         tg.guard(x1, '*, 1, W, H')
         tg.guard(x2, '*, 1, W, H')
         opt_vae, opt_d = self.optimizers()
+
+        vae_result_x1 = self(x1)
+        loss_vae = self.calc_loss_vae(vae_result_x1, x1)
+        vae_result_x2 = self(x2)
+
+        loss_discriminator = self.calc_discriminator_loss(vae_result_x2, x)
+
+        self.optimization_step_(loss_vae, loss_discriminator, opt_vae, opt_d)
+
+        self.log('train/loss_vae', loss_vae, prog_bar=True)
+        self.log('train/loss_discriminator', loss_discriminator, prog_bar=True)
+        with torch.no_grad():
+            loss = loss_vae + loss_discriminator
+        self.log('train/loss', loss)
+        return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator, )
+
+    def optimization_step_(self, loss_vae, loss_discriminator, opt_vae, opt_d):
+        self.manual_backward(loss_vae)
+        opt_vae.step()
         opt_vae.zero_grad()
-        opt_d.zero_grad()
-        vae_result = self(x1)
+        opt_vae.zero_grad()
+        self.manual_backward(loss_discriminator)
+        opt_d.step()
+        opt_vae.zero_grad()
+        opt_vae.zero_grad()
+
+    def calc_discriminator_loss(self, vae_result_x2, x):
+        z_hat = vae_result_x2['z']
+        z_perm = self.permute(z_hat)
+        log_d_output_hat = self.discriminator(z_hat).log()
+        d_output_perm_hat = self.discriminator(z_perm)
+        loss_discriminator = log_d_output_hat + (1 - d_output_perm_hat).log()
+        loss_discriminator = loss_discriminator.sum() / x.shape[0]
+        return loss_discriminator
+
+    def calc_loss_vae(self, vae_result, x1):
+        """
+        Compute the loss for the VAE part of the model. The loss is composed by the standard vAE loss,
+        i.e. reconstruction loss and the KL, plus the discriminator loss.
+        :param vae_result: dict of VAE results
+        :param x1: input images
+        :return: vae scalar loss
+        """
         z = vae_result['z']
         d_output: torch.Tensor = self.discriminator(z)
         log_d_output = d_output.log()
-        reconstruction_loss = self.mse(x, vae_result['x_hat'])  # note: authors use negative crossentropy here
-        loss_vae = reconstruction_loss - distributions.kl_divergence(
-            distributions.Normal(vae_result['post_mu'], vae_result['post_std']), self.prior).log() \
-                - self.gamma * log_d_output / (1 - d_output)
-        loss_vae = loss_vae.sum() / x1.shape[0]
-        vae_result = self(x2)
-        z_hat = vae_result['z']
-        z_perm = self.permute(z_hat)
-        d_output_2 = self.discriminator(z_perm)
-
-        loss_discriminator = log_d_output + (1 - d_output_2).log()
-        loss_discriminator = loss_discriminator.sum() / x.shape[0]
-        self.manual_backward(loss_vae)
-        opt_vae.step()
-        self.manual_backward(loss_discriminator)
-        opt_d.step()
-        return [loss_vae, loss_discriminator]
+        log_reconstruction_loss = distributions.Bernoulli(logits=vae_result['x_hat']).log_prob(
+            x1).sum()  # note: authors use negative crossentropy here
+        post_z = distributions.Normal(vae_result['post_mu'], vae_result['post_std'])
+        log_kl = distributions.kl_divergence(post_z, self.prior).log().sum()
+        loss_vae = - log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output).log().sum())
+        loss_vae = loss_vae / x1.shape[0]
+        return loss_vae
 
     def configure_optimizers(self):
         opt1 = self._opt_vae(params=chain(self.encoder.parameters(), self.decoder.parameters()))
