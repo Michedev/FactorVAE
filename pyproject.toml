@@ -7,6 +7,12 @@ include = [
     'config/*'
 ]
 
+[[tool.poetry.source]]
+name = "torch-cuda116"
+url = "https://download.pytorch.org/whl/cu116"
+secondary = true
+
+
 [tool.poetry.dependencies]
 python = "^3.9"
 matplotlib = "^3.5.2"
@@ -15,8 +21,8 @@ seaborn = "^0.11.2"
 numpy = "^1.23.1"
 path = "^16.4.0"
 hydra-core = "^1.2.0"
-torchvision = "^0.13.0"
-torch = "^1.12.1"
+torchvision = {version="^0.13.0", source="torch-cuda116"}
+torch = {version="^1.12.1", source="torch-cuda116"}
 h5py = "^3.7.0"
 
 [tool.poetry.dev-dependencies]
