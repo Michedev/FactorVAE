@@ -15,19 +15,19 @@ secondary = true
 
 [tool.poetry.dependencies]
 python = "^3.9"
-matplotlib = "^3.5.2"
-pytorch-lightning = "^1.6.5"
-seaborn = "^0.11.2"
-numpy = "^1.23.1"
-path = "^16.4.0"
-hydra-core = "^1.2.0"
+matplotlib = {version="^3.5.2", source="pypi"}
+pytorch-lightning = {version="^1.6.5", source="pypi"}
+seaborn = {version="^0.11.2", source="pypi"}
+numpy = {version="^1.23.1", source="pypi"}
+path = {version="^16.4.0", source="pypi"}
+hydra-core = {version="^1.2.0", source="pypi"}
 torchvision = {version="^0.13.0", source="torch-cuda116"}
 torch = {version="^1.12.1", source="torch-cuda116"}
-h5py = "^3.7.0"
+h5py = {version="^3.7.0", source="pypi"}
 
 [tool.poetry.dev-dependencies]
-poethepoet = "^0.15.0"
-tensorguard = "^1.0.0"
+poethepoet = {version="^0.15.0", source="pypi"}
+tensorguard = {version="^1.0.0", source="pypi"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
