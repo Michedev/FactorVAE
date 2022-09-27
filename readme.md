@@ -2,7 +2,28 @@
 
 FactorVAE implementation using _Pytorch, Pytorch Lightning, Poetry and Hydra_.
 Currently, this implementation supports only the _DSprites_ dataset.
+## Install
 
+To install the dependencies in a isolated virtualenv, run:
+
+```bash
+poetry install
+```
+
+## Train
+
+To train the model, run the following command:
+
+```bash
+poetry run python deep_learning_template/train.py
+```
+
+or alternatively, to train single GPU:
+
+
+```bash
+poe train-gpu
+ ```
 
 ## Project structure
 
