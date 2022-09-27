@@ -54,10 +54,16 @@ class FactorVAE(pl.LightningModule):
         vae_result_x1 = self(x1)
         loss_vae = self.calc_loss_vae(vae_result_x1, x1)
 
-        vae_result_x2 = self(x2)
+        opt_vae.zero_grad()
+        self.manual_backward(loss_vae)
+        opt_vae.step()
+
+        vae_result_x2 = self.forward_encoder(x2)
         loss_discriminator = self.calc_discriminator_loss(vae_result_x2, x)
 
-        self.optimization_step_(loss_vae, loss_discriminator, opt_vae, opt_d)
+        opt_d.zero_grad()
+        self.manual_backward(loss_discriminator)
+        opt_d.step()
 
         with torch.no_grad():
             loss = loss_vae + loss_discriminator
@@ -76,7 +82,7 @@ class FactorVAE(pl.LightningModule):
 
         vae_result_x1 = self(x1)
         loss_vae = self.calc_loss_vae(vae_result_x1, x1)
-        vae_result_x2 = self(x2)
+        vae_result_x2 = self.forward_encoder(x2)
 
         loss_discriminator = self.calc_discriminator_loss(vae_result_x2, x)
 
@@ -87,10 +93,6 @@ class FactorVAE(pl.LightningModule):
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
 
     def optimization_step_(self, loss_vae, loss_discriminator, opt_vae, opt_d):
-        self.manual_backward(loss_vae)
-        opt_vae.step()
-        opt_vae.zero_grad()
-        opt_vae.zero_grad()
         self.manual_backward(loss_discriminator)
         opt_d.step()
         opt_vae.zero_grad()
@@ -122,6 +124,7 @@ class FactorVAE(pl.LightningModule):
         log_kl = distributions.kl_divergence(post_z, self.prior).log().sum()
         loss_vae = neg_log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output).log().sum())
         loss_vae = loss_vae / x1.shape[0]
+
         return loss_vae
 
     def configure_optimizers(self):
