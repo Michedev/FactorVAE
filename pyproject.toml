@@ -29,3 +29,15 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poe.tasks]
 download-dsprites = "wget https://github.com/deepmind/dsprites-dataset/raw/master/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5 -P data"
+train-gpu = 'poetry run factor_vae/train.py accelerator=gpu devices=1'
+
+[tool.poe.tasks.clean-empty-runs]
+shell = """
+from path import Path
+saved_models = Path('saved_models')
+for run in saved_models.dirs():
+    if not run.joinpath('best.ckpt').exists():
+        print('removed', run)
+        run.rmtree()
+"""
+interpreter = "python"

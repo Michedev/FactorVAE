@@ -14,7 +14,7 @@ from factor_vae.utils.paths import CODE_MODEL
 @hydra.main(pkg_resources.resource_filename("factor_vae", 'config'), 'train.yaml')
 def train(config: DictConfig):
     ckpt = None
-    print(config.model)
+
     pl.seed_everything(config.seed)
     if config.ckpt is not None:
         ckpt = Path(config.ckpt)
@@ -28,9 +28,7 @@ def train(config: DictConfig):
     val_dataset: Dataset = hydra.utils.instantiate(config.dataset.val)
     config.batch_size = config.batch_size * 2  # each training step requires two batches as specified in the paper
 
-    CODE_MODEL.copy('model')  # copy source code of model under experiment directory
-
-    model.save_hyperparameters(OmegaConf.to_object(config)['model'])  # save model hyperparameters in tb
+    CODE_MODEL.copytree('model')  # copy source code of model under experiment directory
 
     pin_memory = 'gpu' in config.accelerator
     train_dl = DataLoader(train_dataset, batch_size=config.batch_size, pin_memory=pin_memory)
@@ -43,6 +41,7 @@ def train(config: DictConfig):
                          gradient_clip_val=config.gradient_clip_val,
                          gradient_clip_algorithm=config.gradient_clip_algorithm,
                          resume_from_checkpoint=ckpt, max_steps=config.max_steps)
+    print(model)
     trainer.fit(model, train_dl, val_dl)
 
 

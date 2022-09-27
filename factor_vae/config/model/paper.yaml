@@ -1,5 +1,8 @@
+_target_: factor_vae.model.factor_vae.FactorVAE
 d: 10
 latent_size: 10
+gamma: 6.4
+log_freq: 1000
 opt_vae:
   _partial_: true
   _target_: torch.optim.Adam
@@ -39,7 +42,7 @@ encoder:
     - _target_: torch.nn.Flatten
       start_dim: 1
     - _target_: torch.nn.Linear
-      in_features: 1024
+      in_features: 256
       out_features: 128
     - _target_: torch.nn.ReLU
     - _target_: torch.nn.Linear
@@ -54,11 +57,11 @@ decoder:
         - _target_: torch.nn.ReLU
         - _target_: torch.nn.Linear
           in_features: 128
-          out_features: 1024  # 64 * 4 * 4
+          out_features: 256  # 64 * 4 * 4
         - _target_: torch.nn.ReLU
         - _target_: torch.nn.Unflatten
           dim: 1
-          unflattened_size: [64, 4, 4]
+          unflattened_size: ${inttuple:64,2,2}
         - _target_: torch.nn.ConvTranspose2d
           in_channels: 64
           out_channels: 64
@@ -86,8 +89,8 @@ decoder:
         - _target_: torch.nn.ConvTranspose2d
           in_channels: 32
           out_channels: ${dataset.input_channels}
-          stride: 2
-          kernel_size: 4
+          stride: 1
+          kernel_size: 3
 discriminator:
     _target_: factor_vae.model.discriminator.make_sequential_discriminator
     input_size: ${model.latent_size}

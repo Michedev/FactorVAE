@@ -27,6 +27,7 @@ class FactorVAE(pl.LightningModule):
         self.automatic_optimization = False
         self.log_freq = log_freq
         self.iteration = 0
+        self.bce = nn.BCEWithLogitsLoss(reduction='sum')
 
     def forward(self, x: torch.Tensor):
         post_mu, post_logvar = self.encoder(x).chunk(2, dim=-1)
@@ -43,6 +44,7 @@ class FactorVAE(pl.LightningModule):
         return dict(z=z, post_mu=post_mu, post_std=post_std)
 
     def training_step(self, batch, batch_idx):
+        torch.autograd.set_detect_anomaly(True)
         x = batch['image']
         x1, x2 = x.chunk(2, dim=0)  # each training step requires two batches as specified in the paper
         tg.guard(x1, '*, 1, W, H')
@@ -51,8 +53,8 @@ class FactorVAE(pl.LightningModule):
 
         vae_result_x1 = self(x1)
         loss_vae = self.calc_loss_vae(vae_result_x1, x1)
-        vae_result_x2 = self(x2)
 
+        vae_result_x2 = self(x2)
         loss_discriminator = self.calc_discriminator_loss(vae_result_x2, x)
 
         self.optimization_step_(loss_vae, loss_discriminator, opt_vae, opt_d)
@@ -95,8 +97,8 @@ class FactorVAE(pl.LightningModule):
         opt_vae.zero_grad()
 
     def calc_discriminator_loss(self, vae_result_x2, x):
-        z_hat = vae_result_x2['z']
-        z_perm = self.permute(z_hat)
+        z_hat = vae_result_x2['z'].detach()
+        z_perm = self.permute(z_hat).detach()
         log_d_output_hat = self.discriminator(z_hat).log()
         d_output_perm_hat = self.discriminator(z_perm)
         loss_discriminator = log_d_output_hat + (1 - d_output_perm_hat).log()
@@ -113,18 +115,17 @@ class FactorVAE(pl.LightningModule):
         """
         z = vae_result_x1['z']
         d_output: torch.Tensor = self.discriminator(z)
-        log_d_output = d_output.log()
-        log_reconstruction_loss = distributions.Bernoulli(logits=vae_result_x1['x_hat'])\
-            .log_prob(x1).sum()  # note: authors use negative crossentropy here
+        log_d_output = d_output.log().sum()
+        neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'], x1)   # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         log_kl = distributions.kl_divergence(post_z, self.prior).log().sum()
-        loss_vae = - log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output).log().sum())
+        loss_vae = neg_log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output).log().sum())
         loss_vae = loss_vae / x1.shape[0]
         return loss_vae
 
     def configure_optimizers(self):
         opt1 = self._opt_vae(params=chain(self.encoder.parameters(), self.decoder.parameters()))
-        opt2 = self._opt_discriminator(params=self.discriminator)
+        opt2 = self._opt_discriminator(params=self.discriminator.parameters())
         return [opt1, opt2]
 
     def permute(self, z: torch.Tensor):
