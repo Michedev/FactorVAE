@@ -1,5 +1,8 @@
 # FactorVAE
 
+![https://seqamlab.com/wp-content/uploads/2019/09/imgonline-com-ua-twotoone-CrWAJ4mw43b9N4-600x326.jpg](https://seqamlab.com/wp-content/uploads/2019/09/imgonline-com-ua-twotoone-CrWAJ4mw43b9N4-600x326.jpg)
+
+
 FactorVAE implementation using _Pytorch, Pytorch Lightning, Poetry and Hydra_.
 Currently, this implementation supports only the _DSprites_ dataset.
 This implementation follows as much as possible the specifications contained in Disentangling by Factorising (Kim & Mnih, 2018) https://arxiv.org/pdf/1802.05983.pdf
