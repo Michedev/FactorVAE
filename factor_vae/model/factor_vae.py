@@ -44,7 +44,7 @@ class FactorVAE(pl.LightningModule):
         return dict(z=z, post_mu=post_mu, post_std=post_std)
 
     def training_step(self, batch, batch_idx):
-        torch.autograd.set_detect_anomaly(True)
+
         x = batch['image']
         x1, x2 = x.chunk(2, dim=0)  # each training step requires two batches as specified in the paper
         tg.guard(x1, '*, 1, W, H')
@@ -59,7 +59,7 @@ class FactorVAE(pl.LightningModule):
         opt_vae.step()
 
         vae_result_x2 = self.forward_encoder(x2)
-        loss_discriminator = self.calc_discriminator_loss(vae_result_x2, x)
+        loss_discriminator = self.calc_discriminator_loss(vae_result_x2)
 
         opt_d.zero_grad()
         self.manual_backward(loss_discriminator)
@@ -92,20 +92,14 @@ class FactorVAE(pl.LightningModule):
         self.log('valid/loss', loss)
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
 
-    def optimization_step_(self, loss_vae, loss_discriminator, opt_vae, opt_d):
-        self.manual_backward(loss_discriminator)
-        opt_d.step()
-        opt_vae.zero_grad()
-        opt_vae.zero_grad()
-
-    def calc_discriminator_loss(self, vae_result_x2, x):
+    def calc_discriminator_loss(self, vae_result_x2):
         z_hat = vae_result_x2['z'].detach()
         z_perm = torch.clone(z_hat)
         z_perm = self.permute(z_perm).detach()
         log_d_output_hat = self.discriminator(z_hat).log()
         d_output_perm_hat = self.discriminator(z_perm)
-        loss_discriminator = log_d_output_hat + (1 - d_output_perm_hat).log()
-        loss_discriminator = loss_discriminator.sum() / x.shape[0]
+        loss_discriminator = log_d_output_hat + (1 - d_output_perm_hat + 1e-5).log()
+        loss_discriminator = loss_discriminator.sum() / (2 * z_hat.shape[0])
         return loss_discriminator
 
     def calc_loss_vae(self, vae_result_x1, x1):
@@ -122,7 +116,7 @@ class FactorVAE(pl.LightningModule):
         neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'], x1)   # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         log_kl = distributions.kl_divergence(post_z, self.prior).log().sum()
-        loss_vae = neg_log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output).log().sum())
+        loss_vae = neg_log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output + 1e-5).log().sum())
         loss_vae = loss_vae / x1.shape[0]
 
         return loss_vae
