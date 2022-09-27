@@ -98,7 +98,8 @@ class FactorVAE(pl.LightningModule):
 
     def calc_discriminator_loss(self, vae_result_x2, x):
         z_hat = vae_result_x2['z'].detach()
-        z_perm = self.permute(z_hat).detach()
+        z_perm = torch.clone(z_hat)
+        z_perm = self.permute(z_perm).detach()
         log_d_output_hat = self.discriminator(z_hat).log()
         d_output_perm_hat = self.discriminator(z_perm)
         loss_discriminator = log_d_output_hat + (1 - d_output_perm_hat).log()
