@@ -36,6 +36,8 @@ def train(config: DictConfig):
     ckpt_callback = ModelCheckpoint('./', 'best',
                                     monitor='valid/loss_vae_epoch',
                                     auto_insert_metric_name=False, save_last=True)
+    print_stats_image(train_dataset)
+
     callbacks = [ckpt_callback]
     trainer = pl.Trainer(callbacks=callbacks, accelerator=config.accelerator, devices=config.devices,
                          gradient_clip_val=config.gradient_clip_val,
@@ -43,6 +45,15 @@ def train(config: DictConfig):
                          resume_from_checkpoint=ckpt, max_steps=config.max_steps)
     print(model)
     trainer.fit(model, train_dl, val_dl)
+
+
+def print_stats_image(train_dataset):
+    first_image = train_dataset[0]['image']
+    print(f"First image shape: {first_image.shape}")
+    print(f"First image type: {first_image.dtype}")
+    print('First image min/max: {}/{}'.format(first_image.min(), first_image.max()))
+    print('First image mean/std: {}/{}'.format(first_image.mean(), first_image.std()))
+    print(f"First image: {first_image}")
 
 
 if __name__ == '__main__':

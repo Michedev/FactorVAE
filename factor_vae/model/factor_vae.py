@@ -84,7 +84,7 @@ class FactorVAE(pl.LightningModule):
         loss_vae = self.calc_loss_vae(vae_result_x1, x1)
         vae_result_x2 = self.forward_encoder(x2)
 
-        loss_discriminator = self.calc_discriminator_loss(vae_result_x2, x)
+        loss_discriminator = self.calc_discriminator_loss(vae_result_x2)
 
         loss = loss_vae + loss_discriminator
         self.log('valid/loss_vae', loss_vae, prog_bar=True)
