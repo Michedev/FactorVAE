@@ -34,5 +34,14 @@ tensorguard = "*"
 [requires]
 python_version = "3.9"
 
-[pipenv]
-install_search_all_sources = true
+[scripts]
+download-dsprites = "wget https://github.com/deepmind/dsprites-dataset/raw/master/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5 -P data"
+train-gpu = 'poetry run python factor_vae/train.py accelerator=gpu devices=1'
+train-cpu = 'poetry run python factor_vae/train.py accelerator=cpu'
+clean-empty-runs = """python -c '
+from path import Path
+for run in Path("saved_models").dirs():
+    if not run.joinpath("best.ckpt").exists():
+        print(f"Removing {run}")
+        run.rmtree()
+'"""
