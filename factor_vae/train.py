@@ -39,6 +39,8 @@ def train(config: DictConfig):
     print_stats_image(train_dataset)
 
     callbacks = [ckpt_callback]
+    if config.enable_beta_warmup:
+        callbacks.append(hydra.utils.instantiate(config.beta_warmup))
     trainer = pl.Trainer(callbacks=callbacks, accelerator=config.accelerator, devices=config.devices,
                          gradient_clip_val=config.gradient_clip_val,
                          gradient_clip_algorithm=config.gradient_clip_algorithm,

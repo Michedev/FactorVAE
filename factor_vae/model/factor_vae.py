@@ -28,6 +28,7 @@ class FactorVAE(pl.LightningModule):
         self.log_freq = log_freq
         self.iteration = 0
         self.bce = nn.BCEWithLogitsLoss(reduction='sum')
+        self.beta = 1.0
 
     def forward(self, x: torch.Tensor):
         post_mu, post_logvar = self.encoder(x).chunk(2, dim=-1)
@@ -116,7 +117,7 @@ class FactorVAE(pl.LightningModule):
         neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'], x1)   # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         log_kl = distributions.kl_divergence(post_z, self.prior).log().sum()
-        loss_vae = neg_log_reconstruction_loss - log_kl - self.gamma * (log_d_output - (1 - d_output + 1e-5).log().sum())
+        loss_vae = neg_log_reconstruction_loss - self.beta * log_kl - self.gamma * (log_d_output - (1 - d_output + 1e-5).log().sum())
         loss_vae = loss_vae / x1.shape[0]
 
         return loss_vae
