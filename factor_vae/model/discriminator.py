@@ -12,10 +12,10 @@ def make_sequential_discriminator(input_size: int, num_hidden_layers: int, hidde
     """
     layers = []
     layers.append(nn.Linear(input_size, hidden_size))
-    layers.append(nn.ReLU())
+    layers.append(nn.LeakyReLU(negative_slope=0.2))
     for _ in range(num_hidden_layers - 1):
         layers.append(nn.Linear(hidden_size, hidden_size))
-        layers.append(nn.LeakyReLU())
+        layers.append(nn.LeakyReLU(negative_slope=0.2))
     layers.append(nn.Linear(hidden_size, 1))
     layers.append(nn.Sigmoid())
     return nn.Sequential(*layers)
