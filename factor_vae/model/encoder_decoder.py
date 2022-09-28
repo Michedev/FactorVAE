@@ -22,9 +22,9 @@ def dsprites_decoder(latent_size: int, output_channels: int):
     return nn.Sequential(
         nn.Linear(latent_size, 128),
         nn.ReLU(),
-        nn.Linear(128, 256),
+        nn.Linear(128, 1024),
         nn.ReLU(),
-        nn.Unflatten(1, (64, 2, 2)),
+        nn.Unflatten(1, (64, 4, 4)),
         nn.ConvTranspose2d(64, 64, kernel_size=4, stride=2),
         nn.ReLU(),
         nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2),
