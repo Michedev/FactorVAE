@@ -2,7 +2,7 @@ from pytorch_lightning.callbacks import Callback
 import pytorch_lightning as pl
 
 
-class BetaWarmUp(Callback):
+class BetaWarmup(Callback):
 
     def __init__(self, beta_start: float, beta_end: float, steps: int, delta: float):
         self.beta_start = beta_start
