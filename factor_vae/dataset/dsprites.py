@@ -7,7 +7,6 @@ import h5py
 import torch
 
 
-# todo: loading time is very slow, check new alternative or set better caching for h5py
 class DSpritesImages(Dataset):
     """
     DSprites dataset containing only images
