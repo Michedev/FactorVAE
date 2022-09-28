@@ -4,13 +4,16 @@ dataset:
   height: 64
   input_channels: 1
   train_size: 0.85
+  download: true
   train:
     _target_: factor_vae.dataset.dsprites.DSpritesImages
     train: true
     train_size: ${dataset.train_size}
+    download: ${dataset.download}
   val:
     _target_: factor_vae.dataset.dsprites.DSpritesImages
     train: false
     train_size: ${dataset.train_size}
+    download: ${dataset.download}
 
 max_steps: 300000
