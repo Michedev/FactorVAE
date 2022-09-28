@@ -19,7 +19,7 @@ class DSpritesImages(Dataset):
         dsprites_path = DATA / 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5'
         if not dsprites_path.exists():
             if download:
-                subprocess.call(['poe', 'download-dsprites'], cwd=ROOT)
+                subprocess.call(['pipenv', 'run', 'download-dsprites'], cwd=ROOT)
                 if not dsprites_path.exists():
                     raise RuntimeError('Download failed')
             raise FileNotFoundError('Please download the dataset from {} and place it in {}'
