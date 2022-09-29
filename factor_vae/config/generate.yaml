@@ -1,0 +1,9 @@
+seed: null # random seed
+checkpoint_path: ??? # path to checkpoint
+batch_size: 64
+device: cpu
+grid_rows: 8
+
+hydra:
+  run:
+    dir: ./

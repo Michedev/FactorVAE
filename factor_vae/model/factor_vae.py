@@ -8,7 +8,6 @@ from torch import distributions
 from torch import nn
 
 
-
 class FactorVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, discriminator: nn.Module,
@@ -115,7 +114,8 @@ class FactorVAE(pl.LightningModule):
         """
         z = vae_result_x1['z']
         d_z: torch.Tensor = self.discriminator(z).log_softmax(dim=1)
-        neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'], x1)   # note: authors use negative crossentropy here
+        neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'],
+                                               x1)  # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         kl = distributions.kl_divergence(post_z, self.prior).sum()
         density_ratio = (d_z[:, 1] - d_z[:, 0]).sum()
@@ -138,3 +138,9 @@ class FactorVAE(pl.LightningModule):
             pi = torch.randperm(latent_size)
             z = z[:, pi]
         return z
+
+    def generate(self, batch_size: int = 1, z: torch.Tensor = None):
+        if z is None:
+            z = self.prior.sample((batch_size, self.latent_size)).squeeze(-1)
+        assert len(z.shape) == 2, 'z must be a 2D tensor - current shape: {}'.format(z.shape)
+        return self.decoder(z)

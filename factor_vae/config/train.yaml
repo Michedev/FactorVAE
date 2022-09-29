@@ -1,6 +1,8 @@
 max_steps: -1
+max_epochs: 1
 
 defaults:
+  - _self_
   - model: paper
   - dataset: dsprites
   - optional model_dataset: ${model}-${dataset}
