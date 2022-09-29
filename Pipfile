@@ -45,3 +45,4 @@ for run in Path("saved_models").dirs():
         print(f"Removing {run}")
         run.rmtree()
 '"""
+compress-runs = "tar cfz saved_models.tar.gz saved_models/"

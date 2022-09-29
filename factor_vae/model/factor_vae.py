@@ -90,18 +90,18 @@ class FactorVAE(pl.LightningModule):
         loss_discriminator = self.calc_discriminator_loss(vae_result_x2)
 
         loss = loss_vae + loss_discriminator
-        self.log('valid/loss_vae', loss_vae, prog_bar=True)
-        self.log('valid/loss_discriminator', loss_discriminator, prog_bar=True)
-        self.log('valid/loss', loss)
+        self.log('valid/loss_vae', loss_vae, prog_bar=True, on_step=True, on_epoch=True)
+        self.log('valid/loss_discriminator', loss_discriminator, prog_bar=True, on_step=True, on_epoch=True)
+        self.log('valid/loss', loss, on_step=True, on_epoch=True)
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
 
     def calc_discriminator_loss(self, vae_result_x2):
         z_hat = vae_result_x2['z'].detach()
         z_perm = torch.clone(z_hat)
         z_perm = self.permute(z_perm).detach()
-        log_d_output_hat = self.discriminator(z_hat).log()
+        log_d_output_hat = (self.discriminator(z_hat) + 1e-5).log()
         d_output_perm_hat = self.discriminator(z_perm)
-        loss_discriminator = log_d_output_hat - (1 - d_output_perm_hat + 1e-5).log()
+        loss_discriminator = log_d_output_hat + (1 - d_output_perm_hat + 1e-5).log()
         loss_discriminator = loss_discriminator.sum() / (2 * z_hat.shape[0])
         return loss_discriminator
 
