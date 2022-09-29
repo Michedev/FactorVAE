@@ -96,13 +96,13 @@ class FactorVAE(pl.LightningModule):
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
 
     def calc_discriminator_loss(self, vae_result_x2):
-        z_hat = vae_result_x2['z'].detach()
-        z_perm = torch.clone(z_hat)
+        z = vae_result_x2['z'].detach()
+        z_perm = torch.clone(z)
         z_perm = self.permute(z_perm).detach()
-        log_d_output_hat = self.discriminator(z_hat).log()
-        d_output_perm_hat = self.discriminator(z_perm)
-        loss_discriminator = log_d_output_hat - (1 - d_output_perm_hat + 1e-5).log()
-        loss_discriminator = loss_discriminator.sum() / (2 * z_hat.shape[0])
+        d_z = self.discriminator(z).log_softmax(dim=-1)
+        d_z_perm = self.discriminator(z_perm).log_softmax(dim=-1)
+        loss_discriminator = d_z[:, 1] + d_z_perm[:, 0]
+        loss_discriminator = loss_discriminator.sum() / (2 * z.shape[0])
         return loss_discriminator
 
     def calc_loss_vae(self, vae_result_x1, x1):
@@ -114,14 +114,17 @@ class FactorVAE(pl.LightningModule):
         :return: vae scalar loss
         """
         z = vae_result_x1['z']
-        d_output: torch.Tensor = self.discriminator(z)
-        log_d_output = d_output.log().sum()
+        d_z: torch.Tensor = self.discriminator(z).log_softmax(dim=1)
         neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'], x1)   # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
-        log_kl = distributions.kl_divergence(post_z, self.prior).sum()
-        loss_vae = neg_log_reconstruction_loss + self.beta * log_kl + self.gamma * (log_d_output - (1 - d_output + 1e-5).sum())
+        kl = distributions.kl_divergence(post_z, self.prior).sum()
+        density_ratio = (d_z[:, 1] - d_z[:, 0]).sum()
+        loss_vae = neg_log_reconstruction_loss - self.beta * kl + self.gamma * density_ratio
         loss_vae = loss_vae / x1.shape[0]
-
+        if self.iteration % self.log_freq == 0:
+            self.log('train/recon_loss', neg_log_reconstruction_loss / x1.shape[0])
+            self.log('train/kl_loss', -  kl / x1.shape[0])
+            self.log('train/density_ratio_loss', density_ratio / x1.shape[0])
         return loss_vae
 
     def configure_optimizers(self):
