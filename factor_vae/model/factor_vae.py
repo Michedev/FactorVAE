@@ -8,6 +8,7 @@ from torch import distributions
 from torch import nn
 
 
+
 class FactorVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, discriminator: nn.Module,
@@ -28,12 +29,13 @@ class FactorVAE(pl.LightningModule):
         self.log_freq = log_freq
         self.iteration = 0
         self.bce = nn.BCEWithLogitsLoss(reduction='sum')
+        self.mse = nn.MSELoss(reduction='sum')
         self.beta = 1.0
 
     def forward(self, x: torch.Tensor):
         post_mu, post_logvar = self.encoder(x).chunk(2, dim=-1)
         post_std = torch.exp(0.5 * post_logvar)
-        z = post_mu + post_std * torch.randn_like(post_logvar)
+        z = distributions.Normal(post_mu, post_std).rsample()
         x_hat = self.decoder(z)
         tg.guard(x_hat, '*, 1, W, H')
         return dict(z=z, x_hat=x_hat, post_mu=post_mu, post_std=post_std)
@@ -41,7 +43,7 @@ class FactorVAE(pl.LightningModule):
     def forward_encoder(self, x: torch.Tensor):
         post_mu, post_logvar = self.encoder(x).chunk(2, dim=-1)
         post_std = torch.exp(0.5 * post_logvar)
-        z = post_mu + post_std * torch.randn_like(post_logvar)
+        z = distributions.Normal(post_mu, post_std).rsample()
         return dict(z=z, post_mu=post_mu, post_std=post_std)
 
     def training_step(self, batch, batch_idx):
@@ -99,7 +101,7 @@ class FactorVAE(pl.LightningModule):
         z_perm = self.permute(z_perm).detach()
         log_d_output_hat = self.discriminator(z_hat).log()
         d_output_perm_hat = self.discriminator(z_perm)
-        loss_discriminator = log_d_output_hat + (1 - d_output_perm_hat + 1e-5).log()
+        loss_discriminator = log_d_output_hat - (1 - d_output_perm_hat + 1e-5).log()
         loss_discriminator = loss_discriminator.sum() / (2 * z_hat.shape[0])
         return loss_discriminator
 
@@ -116,8 +118,8 @@ class FactorVAE(pl.LightningModule):
         log_d_output = d_output.log().sum()
         neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'], x1)   # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
-        log_kl = distributions.kl_divergence(post_z, self.prior).log().sum()
-        loss_vae = neg_log_reconstruction_loss - self.beta * log_kl - self.gamma * (log_d_output - (1 - d_output + 1e-5).log().sum())
+        log_kl = distributions.kl_divergence(post_z, self.prior).sum()
+        loss_vae = neg_log_reconstruction_loss + self.beta * log_kl + self.gamma * (log_d_output - (1 - d_output + 1e-5).sum())
         loss_vae = loss_vae / x1.shape[0]
 
         return loss_vae
