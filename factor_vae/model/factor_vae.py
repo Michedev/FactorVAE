@@ -113,13 +113,13 @@ class FactorVAE(pl.LightningModule):
         :return: vae scalar loss
         """
         z = vae_result_x1['z']
-        d_z: torch.Tensor = self.discriminator(z).log_softmax(dim=1)
+        d_z: torch.Tensor = self.discriminator(z)
         neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'],
                                                x1)  # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         kl = distributions.kl_divergence(post_z, self.prior).sum()
         density_ratio = (d_z[:, 1] - d_z[:, 0]).sum()
-        loss_vae = neg_log_reconstruction_loss - self.beta * kl + self.gamma * density_ratio
+        loss_vae = neg_log_reconstruction_loss - self.beta * kl + self.gamma * (d_z[:, 0] - d_z[:, 1]).sum()
         loss_vae = loss_vae / x1.shape[0]
         if self.iteration % self.log_freq == 0:
             self.log('train/recon_loss', neg_log_reconstruction_loss / x1.shape[0])

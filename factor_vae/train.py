@@ -47,7 +47,7 @@ def train(config: DictConfig):
     trainer = pl.Trainer(callbacks=callbacks, accelerator=config.accelerator, devices=config.devices,
                          gradient_clip_val=config.gradient_clip_val,
                          gradient_clip_algorithm=config.gradient_clip_algorithm,
-                         resume_from_checkpoint=ckpt / 'best.ckpt', max_steps=config.max_steps,
+                         resume_from_checkpoint=ckpt / 'best.ckpt' if ckpt is not None else None, max_steps=config.max_steps,
                          max_epochs=config.max_epochs)
     print(model)
     trainer.fit(model, train_dl, val_dl)
