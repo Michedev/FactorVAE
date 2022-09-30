@@ -1,5 +1,5 @@
 max_steps: -1
-max_epochs: 1
+max_epochs: -1
 
 defaults:
   - _self_

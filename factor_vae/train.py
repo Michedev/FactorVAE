@@ -23,6 +23,8 @@ def train(config: DictConfig):
         print('loaded original config from', ckpt / 'config.yaml')
     with open('config.yaml', 'w') as f:
         omegaconf.OmegaConf.save(config, f, resolve=True)
+    print(omegaconf.OmegaConf.to_yaml(config))
+
     model: pl.LightningModule = hydra.utils.instantiate(config.model)
     train_dataset: Dataset = hydra.utils.instantiate(config.dataset.train)
     val_dataset: Dataset = hydra.utils.instantiate(config.dataset.val)

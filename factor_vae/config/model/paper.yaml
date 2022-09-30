@@ -23,5 +23,5 @@ decoder:
 discriminator:
     _target_: factor_vae.model.discriminator.make_sequential_discriminator
     input_size: ${model.latent_size}
-    hidden_size: 128
-    num_hidden_layers: 3
+    hidden_size: 1000
+    num_hidden_layers: 5
