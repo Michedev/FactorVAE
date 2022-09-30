@@ -4,6 +4,7 @@ from itertools import chain
 import pytorch_lightning as pl
 import tensorguard as tg
 import torch
+import torchvision
 from torch import distributions
 from torch import nn
 
@@ -41,7 +42,7 @@ class FactorVAE(pl.LightningModule):
 
     def forward_encoder(self, x: torch.Tensor):
         post_mu, post_logvar = self.encoder(x).chunk(2, dim=-1)
-        post_std = torch.exp(0.5 * post_logvar)
+        post_std = torch.nn.functional.softplus(post_logvar)
         z = distributions.Normal(post_mu, post_std).rsample()
         return dict(z=z, post_mu=post_mu, post_std=post_std)
 
@@ -77,6 +78,10 @@ class FactorVAE(pl.LightningModule):
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
 
     def validation_step(self, batch, batch_idx) -> dict:
+        if batch_idx == 0:
+            batch_gen_images = self.generate(64)
+            grid_images = torchvision.utils.make_grid(batch_gen_images, nrow=8)
+            self.logger.experiment.add_image('generated_images_epoch', grid_images, self.current_epoch)
         x = batch['image']
         x1, x2 = x.chunk(2, dim=0)  # each training step requires two batches as specified in the paper
         tg.guard(x1, '*, 1, W, H')
@@ -100,7 +105,7 @@ class FactorVAE(pl.LightningModule):
         z_perm = self.permute(z_perm).detach()
         d_z = self.discriminator(z).log_softmax(dim=-1)
         d_z_perm = self.discriminator(z_perm).log_softmax(dim=-1)
-        loss_discriminator = d_z[:, 1] + d_z_perm[:, 0]
+        loss_discriminator = d_z[:, 0] + d_z_perm[:, 1]
         loss_discriminator = loss_discriminator.sum() / (2 * z.shape[0])
         return loss_discriminator
 
@@ -113,14 +118,14 @@ class FactorVAE(pl.LightningModule):
         :return: vae scalar loss
         """
         z = vae_result_x1['z']
-        d_z: torch.Tensor = self.discriminator(z)
+        d_z: torch.Tensor = self.discriminator(z).log_softmax(dim=-1)
         neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'],
                                                x1)  # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         kl = distributions.kl_divergence(post_z, self.prior).sum()
-        density_ratio = (d_z[:, 1] - d_z[:, 0]).sum()
-        loss_vae = neg_log_reconstruction_loss - self.beta * kl + self.gamma * (d_z[:, 0] - d_z[:, 1]).sum()
-        loss_vae = loss_vae / x1.shape[0]
+        density_ratio = (d_z[:, 0] - d_z[:, 1]).sum()
+        loss_vae = neg_log_reconstruction_loss - self.beta * kl - self.gamma * (d_z[:, 0] - d_z[:, 1]).sum()
+        loss_vae = loss_vae / (2 * x1.shape[0])
         if self.iteration % self.log_freq == 0:
             self.log('train/recon_loss', neg_log_reconstruction_loss / x1.shape[0])
             self.log('train/kl_loss', -  kl / x1.shape[0])
@@ -141,6 +146,6 @@ class FactorVAE(pl.LightningModule):
 
     def generate(self, batch_size: int = 1, z: torch.Tensor = None):
         if z is None:
-            z = self.prior.sample((batch_size, self.latent_size)).squeeze(-1)
+            z = self.prior.sample((batch_size, self.latent_size)).squeeze(-1).to(self.device)
         assert len(z.shape) == 2, 'z must be a 2D tensor - current shape: {}'.format(z.shape)
         return self.decoder(z)
