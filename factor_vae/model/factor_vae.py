@@ -17,6 +17,7 @@ class FactorVAE(pl.LightningModule):
         super().__init__()
         assert gradient_clip_algorithm in ['norm', 'value']
         assert gradient_clip_val >= 0.0
+        assert latent_size >= d, 'latent_size must be greater than or equal to d (shuffled latent dimensions)'
 
         self.encoder = encoder
         self.decoder = decoder
@@ -38,7 +39,7 @@ class FactorVAE(pl.LightningModule):
         self.gradient_clip_algorithm = gradient_clip_algorithm
         self._clip_grad_ = None
         self.debug = debug
-        if self.gradient_clip_val > 0:  # clip gradients
+        if self.gradient_clip_val > 1e-6:  # clip gradients
             clip_grad = getattr(torch.nn.utils, f'clip_grad_{self.gradient_clip_algorithm}_')
             self._clip_grad_ = lambda p: clip_grad(p, self.gradient_clip_val)
 
@@ -151,7 +152,7 @@ class FactorVAE(pl.LightningModule):
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         kl = distributions.kl_divergence(post_z, self.prior).sum()
         density_ratio = (d_z[:, 0] - d_z[:, 1]).sum()
-        loss_vae = neg_log_reconstruction_loss - self.beta * kl + self.gamma * density_ratio
+        loss_vae = neg_log_reconstruction_loss + self.beta * kl + self.gamma * density_ratio
         loss_vae = loss_vae / x1.shape[0]
         if self.debug:
             print('neg_log_reconstruction_loss', neg_log_reconstruction_loss)
@@ -161,7 +162,7 @@ class FactorVAE(pl.LightningModule):
             print('d_z', d_z)
         if self.iteration % self.log_freq == 0:
             self.log('train/recon_loss', neg_log_reconstruction_loss / x1.shape[0])
-            self.log('train/kl_loss', -  self.beta * kl / x1.shape[0])
+            self.log('train/kl_loss',  self.beta * kl / x1.shape[0])
             self.log('train/density_ratio_loss', self.gamma * density_ratio / x1.shape[0])
         return loss_vae
 
@@ -171,10 +172,11 @@ class FactorVAE(pl.LightningModule):
         return [opt1, opt2]
 
     def permute(self, z: torch.Tensor):
-        latent_size: int = z.shape[-1]
-        for _ in range(self.d):
-            pi = torch.randperm(latent_size)
-            z = z[:, pi]
+
+        bs, latent_size = z.shape
+        for i in range(self.d):
+            pi = torch.randperm(bs)
+            z[:, i] = z[pi, i]
         return z
 
     def generate(self, batch_size: int = 1, z: torch.Tensor = None):
