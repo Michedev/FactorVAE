@@ -8,13 +8,16 @@ import torchvision
 from torch import distributions
 from torch import nn
 
-
 class FactorVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, discriminator: nn.Module,
                  opt_vae: partial, opt_discriminator: partial, d: int, gamma: float,
-                 latent_size: int, log_freq: int):
+                 latent_size: int, log_freq: int, gradient_clip_val: float = 0.0,
+                 gradient_clip_algorithm: str = 'norm', debug: bool = False):
         super().__init__()
+        assert gradient_clip_algorithm in ['norm', 'value']
+        assert gradient_clip_val >= 0.0
+
         self.encoder = encoder
         self.decoder = decoder
         self.discriminator = discriminator
@@ -31,13 +34,21 @@ class FactorVAE(pl.LightningModule):
         self.bce = nn.BCEWithLogitsLoss(reduction='sum')
         self.mse = nn.MSELoss(reduction='sum')
         self.beta = 1.0
+        self.gradient_clip_val = gradient_clip_val
+        self.gradient_clip_algorithm = gradient_clip_algorithm
+        self._clip_grad_ = None
+        self.debug = debug
+        if self.gradient_clip_val > 0:  # clip gradients
+            clip_grad = getattr(torch.nn.utils, f'clip_grad_{self.gradient_clip_algorithm}_')
+            self._clip_grad_ = lambda p: clip_grad(p, self.gradient_clip_val)
+
+        tg.set_dim('L', self.latent_size)
 
     def forward(self, x: torch.Tensor):
         post_mu, post_logvar = self.encoder(x).chunk(2, dim=-1)
         post_std = torch.exp(0.5 * post_logvar)
         z = distributions.Normal(post_mu, post_std).rsample()
         x_hat = self.decoder(z)
-        tg.guard(x_hat, '*, 1, W, H')
         return dict(z=z, x_hat=x_hat, post_mu=post_mu, post_std=post_std)
 
     def forward_encoder(self, x: torch.Tensor):
@@ -50,8 +61,7 @@ class FactorVAE(pl.LightningModule):
 
         x = batch['image']
         x1, x2 = x.chunk(2, dim=0)  # each training step requires two batches as specified in the paper
-        tg.guard(x1, '*, 1, W, H')
-        tg.guard(x2, '*, 1, W, H')
+
         opt_vae, opt_d = self.optimizers()
 
         vae_result_x1 = self(x1)
@@ -59,6 +69,7 @@ class FactorVAE(pl.LightningModule):
 
         opt_vae.zero_grad()
         self.manual_backward(loss_vae)
+        if self._clip_grad_ is not None: self._clip_grad_(self._vae_parameters())
         opt_vae.step()
 
         vae_result_x2 = self.forward_encoder(x2)
@@ -66,6 +77,7 @@ class FactorVAE(pl.LightningModule):
 
         opt_d.zero_grad()
         self.manual_backward(loss_discriminator)
+        if self._clip_grad_ is not None: self._clip_grad_(self.discriminator.parameters())
         opt_d.step()
 
         with torch.no_grad():
@@ -74,8 +86,16 @@ class FactorVAE(pl.LightningModule):
             self.log('train/loss_vae', loss_vae, prog_bar=True)
             self.log('train/loss_discriminator', loss_discriminator, prog_bar=True)
             self.log('train/loss', loss)
+            self.log('train/', {'x1_d_z0': vae_result_x1['z'][:, 0].detach().mean(dim=0).item(),
+                                'x1_d_z1': vae_result_x1['z'][:, 1].detach().mean(dim=0).item(),
+                                'x2_d_z0': vae_result_x2['z'][:, 0].detach().mean(dim=0).item(),
+                                'x2_d_z1': vae_result_x2['z'][:, 1].detach().mean(dim=0).item()})
+
         self.iteration += 1
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
+
+    def _vae_parameters(self):
+        return chain(self.encoder.parameters(), self.decoder.parameters())
 
     def validation_step(self, batch, batch_idx) -> dict:
         if batch_idx == 0:
@@ -88,6 +108,10 @@ class FactorVAE(pl.LightningModule):
         tg.guard(x2, '*, 1, W, H')
 
         vae_result_x1 = self(x1)
+
+        tg.guard(vae_result_x1['x_hat'], '*, 1, W, H')
+        tg.guard(vae_result_x1['z'], '*, L')
+
         loss_vae = self.calc_loss_vae(vae_result_x1, x1)
         vae_result_x2 = self.forward_encoder(x2)
 
@@ -105,7 +129,10 @@ class FactorVAE(pl.LightningModule):
         z_perm = self.permute(z_perm).detach()
         d_z = self.discriminator(z).log_softmax(dim=-1)
         d_z_perm = self.discriminator(z_perm).log_softmax(dim=-1)
-        loss_discriminator = d_z[:, 0] + d_z_perm[:, 1]
+        if self.debug:
+            print('d_z', d_z)
+            print('d_z_perm', d_z_perm)
+        loss_discriminator = - d_z[:, 0] - d_z_perm[:, 1]
         loss_discriminator = loss_discriminator.sum() / (2 * z.shape[0])
         return loss_discriminator
 
@@ -118,22 +145,28 @@ class FactorVAE(pl.LightningModule):
         :return: vae scalar loss
         """
         z = vae_result_x1['z']
-        d_z: torch.Tensor = self.discriminator(z).log_softmax(dim=-1)
+        d_z: torch.Tensor = self.discriminator(z)
         neg_log_reconstruction_loss = self.bce(vae_result_x1['x_hat'],
                                                x1)  # note: authors use negative crossentropy here
         post_z = distributions.Normal(vae_result_x1['post_mu'], vae_result_x1['post_std'])
         kl = distributions.kl_divergence(post_z, self.prior).sum()
         density_ratio = (d_z[:, 0] - d_z[:, 1]).sum()
-        loss_vae = neg_log_reconstruction_loss - self.beta * kl - self.gamma * (d_z[:, 0] - d_z[:, 1]).sum()
-        loss_vae = loss_vae / (2 * x1.shape[0])
+        loss_vae = neg_log_reconstruction_loss - self.beta * kl + self.gamma * density_ratio
+        loss_vae = loss_vae / x1.shape[0]
+        if self.debug:
+            print('neg_log_reconstruction_loss', neg_log_reconstruction_loss)
+            print('kl', kl)
+            print('density_ratio', density_ratio)
+            print('loss_vae', loss_vae)
+            print('d_z', d_z)
         if self.iteration % self.log_freq == 0:
             self.log('train/recon_loss', neg_log_reconstruction_loss / x1.shape[0])
-            self.log('train/kl_loss', -  kl / x1.shape[0])
-            self.log('train/density_ratio_loss', density_ratio / x1.shape[0])
+            self.log('train/kl_loss', -  self.beta * kl / x1.shape[0])
+            self.log('train/density_ratio_loss', self.gamma * density_ratio / x1.shape[0])
         return loss_vae
 
     def configure_optimizers(self):
-        opt1 = self._opt_vae(params=chain(self.encoder.parameters(), self.decoder.parameters()))
+        opt1 = self._opt_vae(params=self._vae_parameters())
         opt2 = self._opt_discriminator(params=self.discriminator.parameters())
         return [opt1, opt2]
 

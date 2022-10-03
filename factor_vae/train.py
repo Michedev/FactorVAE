@@ -25,7 +25,8 @@ def train(config: DictConfig):
         omegaconf.OmegaConf.save(config, f, resolve=True)
     print(omegaconf.OmegaConf.to_yaml(config))
 
-    model: pl.LightningModule = hydra.utils.instantiate(config.model)
+    model: pl.LightningModule = hydra.utils.instantiate(config.model, gradient_clip_val=config.gradient_clip_val,
+                                                        gradient_clip_algorithm=config.gradient_clip_algorithm)
     train_dataset: Dataset = hydra.utils.instantiate(config.dataset.train)
     val_dataset: Dataset = hydra.utils.instantiate(config.dataset.val)
     config.batch_size = config.batch_size * 2  # each training step requires two batches as specified in the paper
@@ -47,8 +48,6 @@ def train(config: DictConfig):
     if config.enable_beta_warmup:
         callbacks.append(hydra.utils.instantiate(config.beta_warmup))
     trainer = pl.Trainer(callbacks=callbacks, accelerator=config.accelerator, devices=config.devices,
-                         gradient_clip_val=config.gradient_clip_val,
-                         gradient_clip_algorithm=config.gradient_clip_algorithm,
                          resume_from_checkpoint=ckpt / 'best.ckpt' if ckpt is not None else None, max_steps=config.max_steps,
                          max_epochs=config.max_epochs)
     print(model)
