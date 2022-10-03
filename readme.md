@@ -54,4 +54,4 @@ pipenv run train-gpu
 ## TODO
 
 - Add disentanglement evaluation
-- Add generation procedure
+- ~~Add generation procedure~~
