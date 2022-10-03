@@ -1,6 +1,6 @@
 # FactorVAE
 
-FactorVAE implementation using _Pytorch, Pytorch Lightning, Poetry and Hydra_.
+FactorVAE implementation using _Pytorch, Pytorch Lightning, Pipenv and Hydra_.
 Currently, this implementation supports only the _DSprites_ dataset.
 This implementation follows as much as possible the specifications contained in Disentangling by Factorising (Kim & Mnih, 2018) https://arxiv.org/pdf/1802.05983.pdf
 
@@ -11,7 +11,7 @@ This implementation follows as much as possible the specifications contained in 
 To install the dependencies in a isolated virtualenv, run:
 
 ```bash
-poetry install
+pipenv install
 ```
 
 ## Train
@@ -19,14 +19,14 @@ poetry install
 To train the model, run the following command:
 
 ```bash
-poetry run python deep_learning_template/train.py
+pipenv run python deep_learning_template/train.py
 ```
 
 or alternatively, to train single GPU:
 
 
 ```bash
-poe train-gpu
+pipenv run train-gpu
  ```
 
 ## Project structure
@@ -54,4 +54,4 @@ poe train-gpu
 ## TODO
 
 - Add disentanglement evaluation
-- Add generation procedure
+- ~~Add generation procedure~~
