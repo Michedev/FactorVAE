@@ -3,6 +3,7 @@ d: 10
 latent_size: 10
 gamma: 6.4
 log_freq: 1000
+debug: false
 opt_vae:
   _partial_: true
   _target_: torch.optim.Adam
