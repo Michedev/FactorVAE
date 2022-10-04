@@ -8,7 +8,20 @@ This implementation follows as much as possible the specifications contained in 
 
 ## Install
 
-To install the dependencies in a isolated virtualenv, run:
+1. Clone the repository
+
+```bash
+git clone https://github.com/Michedev/FactorVAE.git
+```
+
+2. Install [pipenv](https://pipenv.pypa.io/en/latest/)
+
+```bash
+pip install pipenv
+```
+
+
+3. Install the dependencies in a isolated virtualenv
 
 ```bash
 pipenv install
@@ -49,6 +62,18 @@ pipenv run train-gpu
     ├── pyproject.toml  # Project configuration
     ├── saved_models  # where models are saved
     └── readme.md  # This file
+
+## Generate batch of images
+
+Once trained a model, generate the image through the script generate.py via the following command
+
+```bash
+pipenv run python factor_vae/generate.py checkpoint_path=saved_models/{model_folder}
+```
+
+Then, inside _{model_folder}_ there will be the file _generated.png_ containing the batch of generated images.
+
+![generated](https://user-images.githubusercontent.com/12683228/193795520-e162eace-62ca-47f7-b9e2-428dbe88203e.png)
 
 
 ## TODO
