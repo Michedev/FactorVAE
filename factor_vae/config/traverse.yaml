@@ -1,0 +1,12 @@
+seed: null # random seed
+checkpoint_path: ??? # path to checkpoint
+device: cpu
+z_linspace:
+  num: 10
+  min: -3
+  max: 3
+
+
+hydra:
+  run:
+    dir: ./

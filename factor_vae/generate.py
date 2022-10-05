@@ -1,33 +1,16 @@
-from random import randint
-
 import hydra
-import pytorch_lightning as pl
-from omegaconf import OmegaConf, DictConfig
-from path import Path
+from omegaconf import DictConfig
 import torchvision
-import torch
 
 from factor_vae.utils.paths import CONFIG, ROOT
+from utils.experiment_tools import load_checkpoint_model_eval
 
 
 @hydra.main(CONFIG, 'generate.yaml')
 def main(config: DictConfig):
-    ckpt_folder = ROOT / Path(config.checkpoint_path)
-    assert ckpt_folder.exists() and ckpt_folder.isdir(), f"Checkpoint {ckpt_folder} does not exist or is not a directory"
-    assert (ckpt_folder / 'config.yaml').exists(), f"Checkpoint {ckpt_folder} does not contain a config.yaml file"
-    assert (ckpt_folder / 'best.ckpt').exists(), f"Checkpoint {ckpt_folder} does not contain a best.ckpt file"
-
-    pl.seed_everything(config.seed)
-
-    ckpt_config = OmegaConf.load(ckpt_folder / 'config.yaml')
-
-    model: pl.LightningModule = hydra.utils.instantiate(ckpt_config.model)
-    print('loading', ckpt_folder / 'best.ckpt')
-    model.load_state_dict(torch.load(ckpt_folder / 'best.ckpt', map_location=config.device)['state_dict'])
-
-    model.eval()
-    model.freeze()
-
+    ckpt = load_checkpoint_model_eval(ROOT / config.checkpoint_path, config.seed, config.device)
+    model = ckpt['model']
+    ckpt_folder = ckpt['ckpt_folder']
     generated_batch = model.generate(config.batch_size)
     print('generated batch', generated_batch.shape)
     img_grid = torchvision.utils.make_grid(generated_batch, nrow=config.grid_rows)
