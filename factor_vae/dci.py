@@ -1,3 +1,5 @@
+from typing import List, Union, Dict
+
 import hydra
 import torch.nn
 
@@ -5,7 +7,7 @@ from utils.experiment_tools import load_checkpoint_model_eval
 from utils.paths import CONFIG
 from torch import nn
 import pytorch_lightning as pl
-
+import json
 
 def instantiate_loss_dict(features_metadata):
     return {feature: nn.CrossEntropyLoss() if metadata['type'] == 'categorical' else nn.MSELoss()
@@ -53,26 +55,32 @@ class DCILinear(pl.LightningModule):
         loss = loss + \
                self.lambda_1 * self.linear_model.weight.norm(1) + \
                self.lambda_2 * self.linear_model.weight.norm(2)
-        self.log('dci/train_loss', loss, prog_bar=True)
+        if self.global_step % 1000 == 0:
+            self.log('dci/train_loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x = batch['image']
         yhat = self(x)
         loss = 0.0
+        results = dict()
         for feature, metadata in self.features_metadata.items():
             yhat_feature = yhat[:, self.features_slices[feature]]
             y_feature = batch[feature]
             loss = loss + self.loss_dict[feature](yhat_feature, y_feature)
             if metadata['type'] == 'categorical':
+                results[f'acc_{feature}'] = (yhat_feature.argmax(dim=1) == y_feature).float().mean()
                 self.log(f'dci/val_acc_{feature}', (yhat_feature.argmax(dim=1, keepdim=True) == y_feature).float().mean())
             else:
+                results[f'R2_{feature}'] = 1 - (((yhat_feature - y_feature) ** 2).mean() / y_feature.var())
                 self.log(f'dci/val_R2_{feature}', 1 - ((yhat_feature - y_feature) ** 2).mean() / y_feature.var())
         loss = loss + \
                self.lambda_1 * self.linear_model.weight.norm(1) + \
                self.lambda_2 * self.linear_model.weight.norm(2)
+        results['loss'] = loss
         self.log('dci/val_loss', loss, prog_bar=True)
-        return loss
+        return results
+
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.linear_model.parameters(), lr=1e-3)
@@ -104,12 +112,16 @@ def main(config):
     dci_model = DCILinear(model, ckpt_config.model.latent_size, train_dataset.features_metadata,
                           config.lambda_1, config.lambda_2)
     model_ckpt = pl.callbacks.ModelCheckpoint(dci_ckpt / 'best.ckpt', monitor='dci/val_loss',
-                                              mode='min', save_last=True)
+                                              mode='min', save_last=True, save_weights_only=True)
 
     trainer = pl.Trainer(accelerator='cpu', max_epochs=config.max_epochs, callbacks=[model_ckpt])
+    if not dci_ckpt.joinpath('last.ckpt').exists():
+        trainer.fit(dci_model, train_dl, val_dl)
 
-    trainer.fit(dci_model, train_dl, val_dl)
-
+    outputs: List[Dict] = trainer.validate(dci_model, val_dl, ckpt_path=dci_ckpt / 'best.ckpt')
+    avg_outputs = {k: torch.stack([x[k] for x in outputs]).mean().item() for k in outputs[0].keys()}
+    with open(dci_ckpt / 'results.json', 'w') as f:
+        json.dump(avg_outputs, f)
 
 if __name__ == '__main__':
     main()

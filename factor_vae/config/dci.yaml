@@ -5,3 +5,7 @@ batch_size: 32
 max_epochs: 50
 lambda_1: 0.2
 lambda_2: 0.0
+
+hydra:
+  run:
+    dir: ./
