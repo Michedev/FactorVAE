@@ -7,8 +7,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 import omegaconf
-import os
 from factor_vae.utils.paths import CODE_MODEL, ROOT
+
 
 @hydra.main(pkg_resources.resource_filename("factor_vae", 'config'), 'train.yaml')
 def train(config: DictConfig):
@@ -48,7 +48,8 @@ def train(config: DictConfig):
     if config.enable_beta_warmup:
         callbacks.append(hydra.utils.instantiate(config.beta_warmup))
     trainer = pl.Trainer(callbacks=callbacks, accelerator=config.accelerator, devices=config.devices,
-                         resume_from_checkpoint=ckpt / 'best.ckpt' if ckpt is not None else None, max_steps=config.max_steps,
+                         resume_from_checkpoint=ckpt / 'best.ckpt' if ckpt is not None else None,
+                         max_steps=config.max_steps,
                          max_epochs=config.max_epochs)
     print(model)
     trainer.fit(model, train_dl, val_dl)
@@ -64,4 +65,5 @@ def print_stats_image(train_dataset):
 
 
 if __name__ == '__main__':
+    print('pythonpath:', os.getenv('PYTHONPATH'))
     train()
