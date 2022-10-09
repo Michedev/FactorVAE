@@ -1,0 +1,7 @@
+checkpoint_path: ???
+seed: null
+device: cpu
+batch_size: 32
+max_epochs: 50
+lambda_1: 0.2
+lambda_2: 0.0

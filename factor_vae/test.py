@@ -26,7 +26,7 @@ def test(config: DictConfig):
 
     model: pl.LightningModule = hydra.utils.instantiate(ckpt_config.model)
 
-    test_dataset: Dataset = hydra.utils.instantiate(ckpt_config.dataset.test)
+    test_dataset: Dataset = hydra.utils.instantiate(ckpt_config.dataset, train=False)
 
     test_dl = DataLoader(test_dataset, batch_size=config.batch_size)
 

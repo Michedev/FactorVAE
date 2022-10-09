@@ -1,19 +1,11 @@
 # @package _global_
 dataset:
+  _target_: factor_vae.dataset.dsprites.DSpritesImages
   width: 64
   height: 64
   input_channels: 1
   train_size: 0.85
   download: true
-  train:
-    _target_: factor_vae.dataset.dsprites.DSpritesImages
-    train: true
-    train_size: ${dataset.train_size}
-    download: ${dataset.download}
-  val:
-    _target_: factor_vae.dataset.dsprites.DSpritesImages
-    train: false
-    train_size: ${dataset.train_size}
-    download: ${dataset.download}
+  train: true  # train or test
 
 max_steps: 300000

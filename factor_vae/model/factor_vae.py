@@ -8,6 +8,7 @@ import torchvision
 from torch import distributions
 from torch import nn
 
+
 class FactorVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, discriminator: nn.Module,
@@ -87,10 +88,10 @@ class FactorVAE(pl.LightningModule):
             self.log('train/loss_vae', loss_vae, prog_bar=True)
             self.log('train/loss_discriminator', loss_discriminator, prog_bar=True)
             self.log('train/loss', loss)
-            self.log('train/', {'x1_d_z0': vae_result_x1['z'][:, 0].detach().mean(dim=0).item(),
-                                'x1_d_z1': vae_result_x1['z'][:, 1].detach().mean(dim=0).item(),
-                                'x2_d_z0': vae_result_x2['z'][:, 0].detach().mean(dim=0).item(),
-                                'x2_d_z1': vae_result_x2['z'][:, 1].detach().mean(dim=0).item()})
+            self.log('train/x1_d_z0', vae_result_x1['z'][:, 0].detach().mean(dim=0).item(), )
+            self.log('train/x1_d_z1', vae_result_x1['z'][:, 1].detach().mean(dim=0).item(), )
+            self.log('train/x2_d_z0', vae_result_x2['z'][:, 0].detach().mean(dim=0).item(), )
+            self.log('train/x2_d_z1', vae_result_x2['z'][:, 1].detach().mean(dim=0).item(), )
 
         self.iteration += 1
         return dict(loss=loss, loss_vae=loss_vae, loss_discriminator=loss_discriminator)
@@ -162,7 +163,7 @@ class FactorVAE(pl.LightningModule):
             print('d_z', d_z)
         if self.iteration % self.log_freq == 0:
             self.log('train/recon_loss', neg_log_reconstruction_loss / x1.shape[0])
-            self.log('train/kl_loss',  self.beta * kl / x1.shape[0])
+            self.log('train/kl_loss', self.beta * kl / x1.shape[0])
             self.log('train/density_ratio_loss', self.gamma * density_ratio / x1.shape[0])
         return loss_vae
 

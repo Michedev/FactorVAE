@@ -19,7 +19,7 @@ def main(config: DictConfig):
     model = ckpt['model']
     ckpt_folder = ckpt['ckpt_folder']
     ckpt_config = ckpt['ckpt_config']
-    dataset = hydra.utils.instantiate(ckpt_config.dataset.val)
+    dataset = hydra.utils.instantiate(ckpt_config.dataset, train=False)
     img = dataset[randint(0, len(dataset)-1)]['image'].unsqueeze(0)
     z_original = model.forward_encoder(img)['z']
     grid = torch.zeros(model.latent_size, config.z_linspace.num, ckpt_config.dataset.input_channels,
