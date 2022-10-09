@@ -46,7 +46,10 @@ class DSpritesImages(Dataset):
         }
     }
 
-    def __init__(self, train_size: float, train: bool = True, download=True, preload=True,
+    dsprites_images = None
+    dsprites_features = None
+
+    def __init__(self, train_size: float, train: bool = True, download=True,
                  dataset_len=737280, load_features: bool = False, width: int = 64, height: int = 64, input_channels: int = 1):
         assert 737280 >= dataset_len > 0, 'dataset_len must be in range [1, 737280]'
         self.train_size = train_size
@@ -71,24 +74,32 @@ class DSpritesImages(Dataset):
 
         # load hdf5 file
         self.dsprites = h5py.File(dsprites_path, 'r')
-        self.dsprites_images = self.dsprites['imgs']
-        self.dsprites_latents = None
-        if load_features:
-            self.dsprites_latents = self.dsprites['latents']['values']
-        if preload:
-            print('Preloading', 'train' if train else 'val', 'dataset')
-            if self.train:
-                self.dsprites_images = self.dsprites_images[:self.train_len]
-                if load_features:
-                    self.dsprites_latents = self.dsprites_latents[:self.train_len]
-            else:
-                self.dsprites_images = self.dsprites_images[self.train_len:]
-                if load_features:
-                    self.dsprites_latents = self.dsprites_latents[self.train_len:]
-            np.random.shuffle(self.dsprites_images)
-            if load_features:
-                np.random.shuffle(self.dsprites_latents)
+        if self.dsprites_images is None:
+            print('Preloading images')
+            DSpritesImages.dsprites_images = self.dsprites['imgs'][:]
+            DSpritesImages.i_rand = np.random.permutation(len(DSpritesImages.dsprites_images))
+            DSpritesImages.dsprites_images = DSpritesImages.dsprites_images[DSpritesImages.i_rand]
             print('Done')
+        self.dsprites_images = DSpritesImages.dsprites_images
+        print(f'{len(DSpritesImages.dsprites_images)=}')
+        self.dsprites_features = None
+        if load_features:
+            if self.dsprites_features is None:
+                print('Preloading features')
+                DSpritesImages.dsprites_features = self.dsprites['latents']['values'][:]
+                DSpritesImages.dsprites_features = DSpritesImages.dsprites_features[DSpritesImages.i_rand]
+                print('Done')
+            print(f'{len(DSpritesImages.dsprites_features)=}')
+            self.dsprites_features = DSpritesImages.dsprites_features
+        if self.train:
+            self.dsprites_images = self.dsprites_images[:self.train_len]
+            if load_features:
+                self.dsprites_features = self.dsprites_features[:self.train_len]
+        else:
+            self.dsprites_images = self.dsprites_images[self.train_len:]
+            if load_features:
+                self.dsprites_features = self.dsprites_features[self.train_len:]
+        print('Done')
 
     def __len__(self):
         return self.dataset_len
@@ -99,7 +110,7 @@ class DSpritesImages(Dataset):
         result = dict(image=image)
         if self.load_features:
             for feature, metadata in self.features_metadata.items():
-                result[feature] = self.dsprites_latents[i, metadata['index']]
+                result[feature] = self.dsprites_features[i, metadata['index']]
                 if metadata['type'] == 'categorical':
                     result[feature] = torch.tensor(result[feature], dtype=torch.long) - 1
                 else:
