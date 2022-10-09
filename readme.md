@@ -14,32 +14,25 @@ This implementation follows as much as possible the specifications contained in 
 git clone https://github.com/Michedev/FactorVAE.git
 ```
 
-2. Install [pipenv](https://pipenv.pypa.io/en/latest/)
+2. Install [anaconda](https://www.anaconda.com/)
+
+
+3. Run a terminal with the anaconda environment
 
 ```bash
-pip install pipenv
-```
-
-
-3. Install the dependencies in a isolated virtualenv
-
-```bash
-pipenv install
-```
-
 ## Train
 
 To train the model, run the following command:
 
 ```bash
-pipenv run python deep_learning_template/train.py
+anaconda-project run python factor_vae/train.py
 ```
 
 or alternatively, to train single GPU:
 
 
 ```bash
-pipenv run train-gpu
+anaconda-project run train-gpu
  ```
 
 ## Project structure
@@ -68,7 +61,7 @@ pipenv run train-gpu
 Once trained a model, generate the image through the script generate.py via the following command
 
 ```bash
-pipenv run python factor_vae/generate.py checkpoint_path=saved_models/{model_folder}
+anaconda-project run python factor_vae/generate.py checkpoint_path=saved_models/{model_folder}
 ```
 
 Then, inside _{model_folder}_ there will be the file _generated.png_ containing the batch of generated images.

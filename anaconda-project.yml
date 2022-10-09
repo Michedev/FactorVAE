@@ -98,13 +98,10 @@ channels:
 - pytorch
 
 #
-# In the platforms section, list platforms the project should work on
-# Examples: "linux-64", "osx-64", "win-64"
-# Use `anaconda-project add-platforms` to add platforms.
-#
+#  cudatoolskit=11.3 is not available for osx-64
+-
 platforms:
 - linux-64
-- osx-64
 - win-64
 
 variables:
