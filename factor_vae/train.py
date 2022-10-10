@@ -36,8 +36,8 @@ def train(config: DictConfig):
         CODE_MODEL.copytree('model')  # copy source code of model under experiment directory
 
     pin_memory = 'gpu' in config.accelerator
-    train_dl = DataLoader(train_dataset, batch_size=config.batch_size, pin_memory=pin_memory)
-    val_dl = DataLoader(val_dataset, batch_size=config.batch_size, pin_memory=pin_memory)
+    train_dl = DataLoader(train_dataset, batch_size=config.batch_size, pin_memory=pin_memory, shuffle=True)
+    val_dl = DataLoader(val_dataset, batch_size=config.batch_size, pin_memory=pin_memory, shuffle=True)
     ckpt_callback = ModelCheckpoint('./', 'best',
                                     monitor='valid/loss_vae_epoch',
                                     auto_insert_metric_name=False, save_last=True,
