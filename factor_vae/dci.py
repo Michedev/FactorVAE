@@ -191,11 +191,10 @@ def save_dci_values_(avg_outputs, dci_ckpt, dci_model):
         f_slice = dci_model.features_slices[feature]
         f_params = dci_model.linear_model.weight[f_slice, :]
         f_disentanglement = compute_dci_disentanglement(f_params)
-        f_completeness = compute_dci_completeness(f_params)
         f_informativeness = [v for k, v in avg_outputs.items() if feature in k]
         assert len(f_informativeness) == 1, f_informativeness
         f_informativeness = f_informativeness[0]
-        dci['per_feature'][feature] = dict(disentanglement=f_disentanglement, completeness=f_completeness,
+        dci['per_feature'][feature] = dict(disentanglement=f_disentanglement,
                                            informativeness=f_informativeness)
 
     with open(dci_ckpt / 'dci.yaml', 'w') as f:
