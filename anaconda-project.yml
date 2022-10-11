@@ -26,7 +26,7 @@ description: Pytorch implementation of Factor VAE
 #
 commands:
   train-gpu:
-    unix: "python factor_vae/train.py accelerator=gpu devices=1"
+    unix: python factor_vae/train.py accelerator=gpu devices=1
     env_spec: default
   train-cpu:
     unix: python factor_vae/train.py accelerator=cpu
@@ -94,6 +94,7 @@ packages:
   - tensorguard
 - python=3.9
 - pillow
+- matplotlib
 channels:
 - pytorch
 

@@ -184,4 +184,4 @@ class FactorVAE(pl.LightningModule):
         if z is None:
             z = self.prior.sample((batch_size, self.latent_size)).squeeze(-1).to(self.device)
         assert len(z.shape) == 2, 'z must be a 2D tensor - current shape: {}'.format(z.shape)
-        return self.decoder(z)
+        return self.decoder(z).sigmoid()
