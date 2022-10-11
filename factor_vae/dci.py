@@ -1,4 +1,5 @@
 import math
+import os
 from typing import List, Union, Dict
 
 import hydra
@@ -136,6 +137,7 @@ def main(config):
     model = ckpt['model']
     ckpt_folder = ckpt['ckpt_folder']
     ckpt_config = ckpt['ckpt_config']
+    os.chdir(ckpt_folder)
     dci_ckpt = ckpt_folder / 'dci'
     if not dci_ckpt.exists():
         dci_ckpt.mkdir()
