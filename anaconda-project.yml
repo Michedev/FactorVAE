@@ -34,10 +34,6 @@ commands:
   compress-runs:
     unix: compress-runs = "tar cfz saved_models.tar.gz saved_models/"
     env_spec: default
-#
-# In the variables section, list any environment variables your code depends on.
-# Use `anaconda-project add-variable` to add variables.
-#
   tensorboard:
     unix: tensorboard --logdir=saved_models/
     env_spec: default
