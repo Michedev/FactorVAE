@@ -1,5 +1,6 @@
 import os
 import subprocess
+from typing import List, Union, Literal
 
 from torch.utils.data import Dataset
 from factor_vae.utils.paths import DATA, ROOT
@@ -49,56 +50,66 @@ class DSpritesImages(Dataset):
     dsprites_images = None
     dsprites_features = None
 
-    def __init__(self, train_size: float, train: bool = True, download=True,
-                 dataset_len=737280, load_features: bool = False, width: int = 64, height: int = 64, input_channels: int = 1):
-        assert 737280 >= dataset_len > 0, 'dataset_len must be in range [1, 737280]'
-        self.train_size = train_size
-        self.train = train
-        self.dataset_len = dataset_len
+    def __init__(self, splits: List[Union[int, float]],  split: Union[int, Literal['train', 'val', 'test']],
+                 load_features: bool = False, width: int = 64, height: int = 64, input_channels: int = 1):
+        assert 1 <= len(splits) <= 3, 'splits must be a list of 1, 2 or 3 elements (train, val, test)'
+        if isinstance(splits[0], int):
+            assert all(isinstance(split, int) for split in splits), splits
+            assert 1 <= sum(splits) <= 737280, f'splits {sum(splits)} must sum to a number between 1 and 737280'
+        else:
+            # splits are percentages
+            assert all(isinstance(split, float) for split in splits), splits
+            assert 0 < sum(splits) <= 1, f'splits {sum(splits)} must sum to a number between 0 and 1'
+            for i in range(len(splits)):
+                if i > 0:
+                    splits[i] = int(splits[i] * 737280 + splits[i - 1])
+                else:
+                    splits[i] = int(splits[i] * 737280)
+            splits[-1] = min(splits[-1], 737280)
+        assert split in ['train', 'val', 'test'] or isinstance(split, int), split
+        split = split if isinstance(split, int) else ['train', 'val', 'test'].index(split)
+        assert 0 <= split < len(splits), f'{split=} must be between 0 and {len(splits)=}'
+
         self.load_features = load_features
         self.width = width
         self.height = height
         self.input_channels = input_channels
         dsprites_path = Path(os.getenv('DSPRITES', default=None)) or DATA / 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5'
         if not dsprites_path.exists():
-            if download:
-                subprocess.call(['pipenv', 'run', 'download-dsprites'], cwd=ROOT)
-                if not dsprites_path.exists():
-                    raise RuntimeError('Download failed')
             raise FileNotFoundError('Please download the dataset from {} and place it in {}'
                                     .format('https://github.com/deepmind/dsprites-dataset', DATA))
-        self.train_len = int(self.dataset_len * train_size)
-        self.val_len = self.dataset_len - self.train_len
-
-        self.dataset_len = self.train_len if train else self.val_len
+        index_path = DATA / 'dsprites_index.npy'
+        if not index_path.exists():
+            print('creating index')
+            dsprites_index = np.arange(737280)
+            for _ in range(20): np.random.shuffle(dsprites_index)
+            np.save(index_path, dsprites_index)
+            print('index saved in {}'.format(index_path))
+        dsprites_index = np.load(index_path)
+        print(f'{splits =}')
+        splits.insert(0, 0)
+        self.dataset_len = splits[split + 1] - splits[split]
 
         # load hdf5 file
         self.dsprites = h5py.File(dsprites_path, 'r')
-        if self.dsprites_images is None:
+        if DSpritesImages.dsprites_images is None:
             print('Preloading images')
             DSpritesImages.dsprites_images = self.dsprites['imgs'][:]
-            DSpritesImages.i_rand = np.random.permutation(len(DSpritesImages.dsprites_images))
-            DSpritesImages.dsprites_images = DSpritesImages.dsprites_images[DSpritesImages.i_rand]
+            DSpritesImages.dsprites_images = DSpritesImages.dsprites_images[dsprites_index]
             print('Done')
         self.dsprites_images = DSpritesImages.dsprites_images
-        print(f'{len(DSpritesImages.dsprites_images)=}')
         self.dsprites_features = None
         if load_features:
             if self.dsprites_features is None:
                 print('Preloading features')
                 DSpritesImages.dsprites_features = self.dsprites['latents']['values'][:]
-                DSpritesImages.dsprites_features = DSpritesImages.dsprites_features[DSpritesImages.i_rand]
+                DSpritesImages.dsprites_features = DSpritesImages.dsprites_features[dsprites_index]
                 print('Done')
             print(f'{len(DSpritesImages.dsprites_features)=}')
             self.dsprites_features = DSpritesImages.dsprites_features
-        if self.train:
-            self.dsprites_images = self.dsprites_images[:self.train_len]
-            if load_features:
-                self.dsprites_features = self.dsprites_features[:self.train_len]
-        else:
-            self.dsprites_images = self.dsprites_images[self.train_len:]
-            if load_features:
-                self.dsprites_features = self.dsprites_features[self.train_len:]
+        self.dsprites_images = self.dsprites_images[splits[split]:splits[split + 1]]
+        if load_features:
+            self.dsprites_features = self.dsprites_features[splits[split]:splits[split + 1]]
         print('Done')
 
     def __len__(self):

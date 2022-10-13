@@ -1,11 +1,10 @@
 # @package _global_
 dataset:
   _target_: factor_vae.dataset.dsprites.DSpritesImages
+  splits: [0.7, 0.15, 0.15]
   width: 64
   height: 64
   input_channels: 1
-  train_size: 0.85
-  download: true
-  train: true  # train or test
+  split: train  # train, val or test
 
 max_steps: 300000

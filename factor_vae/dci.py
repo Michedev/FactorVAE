@@ -143,8 +143,8 @@ def main(config):
         dci_ckpt.mkdir()
     ckpt_config['dataset']['load_features'] = True
 
-    train_dataset = hydra.utils.instantiate(ckpt_config.dataset, train=True)
-    val_dataset = hydra.utils.instantiate(ckpt_config.dataset, train=False)
+    train_dataset = hydra.utils.instantiate(ckpt_config.dataset, split='train')
+    val_dataset = hydra.utils.instantiate(ckpt_config.dataset, split='val')
 
     train_dl = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     val_dl = torch.utils.data.DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False)

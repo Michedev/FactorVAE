@@ -27,8 +27,8 @@ def train(config: DictConfig):
 
     model: pl.LightningModule = hydra.utils.instantiate(config.model, gradient_clip_val=config.gradient_clip_val,
                                                         gradient_clip_algorithm=config.gradient_clip_algorithm)
-    train_dataset: Dataset = hydra.utils.instantiate(config.dataset, train=True)
-    val_dataset: Dataset = hydra.utils.instantiate(config.dataset, train=False)
+    train_dataset: Dataset = hydra.utils.instantiate(config.dataset, split='train')
+    val_dataset: Dataset = hydra.utils.instantiate(config.dataset, split='val')
     config.batch_size = config.batch_size * 2  # each training step requires two batches as specified in the paper
     print('double batch size to value ', config.batch_size)
 
