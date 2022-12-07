@@ -16,7 +16,7 @@ ckpt: null  # path to checkpoint
 seed: 1337  # random seed
 enable_beta_warmup: false
 beta_warmup:
-  _target_: factor_vae.callbacks.beta_warmup.BetaWarmup
+  _target_: .callbacks.beta_warmup.BetaWarmup
   beta_start: 0.0
   beta_end: 1.0
   delta: 0.1

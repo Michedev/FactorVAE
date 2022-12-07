@@ -2,7 +2,7 @@ import hydra
 from omegaconf import DictConfig
 import torchvision
 
-from factor_vae.utils.paths import CONFIG, ROOT
+from utils.paths import CONFIG, ROOT
 from utils.experiment_tools import load_checkpoint_model_eval
 
 

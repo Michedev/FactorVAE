@@ -2,7 +2,7 @@ from typing import Iterator, Tuple, overload
 
 import torch
 from path import Path
-from factor_vae.utils.paths import SAVED_MODELS
+from utils.paths import SAVED_MODELS
 from omegaconf import DictConfig, OmegaConf
 import pytorch_lightning as pl
 import hydra

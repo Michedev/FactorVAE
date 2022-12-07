@@ -25,7 +25,7 @@ git clone https://github.com/Michedev/FactorVAE.git
 To train the model, run the following command:
 
 ```bash
-anaconda-project run python factor_vae/train.py
+anaconda-project run python train.py
 ```
 
 or alternatively, to train single GPU:
@@ -61,7 +61,7 @@ anaconda-project run train-gpu
 Once trained a model, generate the image through the script generate.py via the following command
 
 ```bash
-anaconda-project run python factor_vae/generate.py checkpoint_path=saved_models/{model_folder}
+anaconda-project run python generate.py checkpoint_path=saved_models/{model_folder}
 ```
 
 Then, inside _{model_folder}_ there will be the file _generated.png_ containing the batch of generated images.

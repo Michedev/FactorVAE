@@ -9,7 +9,7 @@ import pytorch_lightning as pl
 import omegaconf
 import os
 import yaml
-from factor_vae.utils.paths import CODE_MODEL
+from utils.paths import CODE_MODEL
 
 
 @hydra.main(pkg_resources.resource_filename("factor_vae", 'config'), 'test.yaml')

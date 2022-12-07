@@ -3,7 +3,7 @@ import subprocess
 from typing import List, Union, Literal
 
 from torch.utils.data import Dataset
-from factor_vae.utils.paths import DATA, ROOT
+from utils.paths import DATA, ROOT
 import h5py
 import torch
 from path import Path

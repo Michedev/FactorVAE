@@ -173,7 +173,6 @@ class FactorVAE(pl.LightningModule):
         return [opt1, opt2]
 
     def permute(self, z: torch.Tensor):
-
         bs, latent_size = z.shape
         for i in range(self.d):
             pi = torch.randperm(bs)

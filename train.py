@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 import omegaconf
-from factor_vae.utils.paths import CODE_MODEL, ROOT
+from utils.paths import CODE_MODEL, ROOT
 import os
 
 @hydra.main(pkg_resources.resource_filename("factor_vae", 'config'), 'train.yaml')
