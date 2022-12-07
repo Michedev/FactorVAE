@@ -13,15 +13,7 @@ from utils.paths import CONFIG, ROOT
 from utils.experiment_tools import load_checkpoint_model_eval
 
 
-@hydra.main(CONFIG, 'traverse.yaml')
-def main(config: DictConfig):
-    ckpt = load_checkpoint_model_eval(ROOT / config.checkpoint_path, config.seed, config.device)
-    model = ckpt['model']
-    ckpt_folder = ckpt['ckpt_folder']
-    ckpt_config = ckpt['ckpt_config']
-    dataset = hydra.utils.instantiate(ckpt_config.dataset, split='test')
-    img = dataset[randint(0, len(dataset)-1)]['image'].unsqueeze(0)
-    z_original = model.forward_encoder(img)['post_mu']
+def plot_traverse(model, config, figsize, z_original, batch_size, cmap, ckpt_folder):
     fig, axs = plt.subplots(model.latent_size, config.z_linspace.num, figsize=(config.z_linspace.num, model.latent_size))
     for i in range(model.latent_size):
         for j, z_i in enumerate(torch.linspace(config.z_linspace.min, config.z_linspace.max, config.z_linspace.num)):
@@ -39,6 +31,24 @@ def main(config: DictConfig):
     fig.tight_layout()
     fig.savefig(ckpt_folder / 'traverse.png')
     print('saved', ckpt_folder / 'traverse.png')
+    
 
+@hydra.main(CONFIG, 'traverse.yaml')
+def main(config: DictConfig):
+    ckpt = load_checkpoint_model_eval(ROOT / config.checkpoint_path, config.seed, config.device)
+    model = ckpt['model']
+    ckpt_folder = ckpt['ckpt_folder']
+    ckpt_config = ckpt['ckpt_config']
+
+    # load random image from test set
+    dataset = hydra.utils.instantiate(ckpt_config.dataset, split='test')
+    img = dataset[randint(0, len(dataset)-1)]['image'].unsqueeze(0)
+
+    # get latent vector
+    z_original = model.forward_encoder(img)['post_mu']
+
+    plot_traverse(model, config, figsize, z_original, batch_size, cmap, ckpt_folder)
+
+    
 if __name__ == '__main__':
     main()
