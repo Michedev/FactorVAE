@@ -13,7 +13,7 @@ from utils.paths import CONFIG, ROOT
 from utils.experiment_tools import load_checkpoint_model_eval
 
 
-def plot_traverse(model, config, figsize, z_original, batch_size, cmap, ckpt_folder):
+def plot_traverse(model, config, z_original, ckpt_folder):
     fig, axs = plt.subplots(model.latent_size, config.z_linspace.num, figsize=(config.z_linspace.num, model.latent_size))
     for i in range(model.latent_size):
         for j, z_i in enumerate(torch.linspace(config.z_linspace.min, config.z_linspace.max, config.z_linspace.num)):
@@ -47,7 +47,7 @@ def main(config: DictConfig):
     # get latent vector
     z_original = model.forward_encoder(img)['post_mu']
 
-    plot_traverse(model, config, figsize, z_original, batch_size, cmap, ckpt_folder)
+    plot_traverse(model, config, z_original, ckpt_folder)
 
     
 if __name__ == '__main__':
