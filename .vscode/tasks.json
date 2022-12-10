@@ -2,22 +2,47 @@
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
     "version": "2.0.0",
-
     "tasks": [
         {
-            "label": "conda:activate",
-            "type": "shell",
-            "command": "conda-activate",
-        },
-        {
             "label": "conda:train-gpu",
-            "type": "shell",
-            "command": "anaconda-project run train-gpu",
+            "type": "process",
+            "command": "anaconda-project run train-gpu"
         },
         {
             "label": "conda:train-cpu",
             "type": "shell",
             "command": "anaconda-project run train-cpu"
+        },
+        {
+            "label": "conda:traverse",
+            "type": "shell",
+            "command": "anaconda-project",
+            "args": [
+                "run", "python", "traverse.py",
+                "checkpoint_path=saved_models/${input:checkpointPath}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "checkpointPath",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "ls saved_models/",
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "WORKSPACE": "${workspaceFolder[0]}",
+                    "FILE": "${file}",
+                    "PROJECT": "${workspaceFolderBasename}"
+                }
+            }
+                  
         }
     ]
 }
