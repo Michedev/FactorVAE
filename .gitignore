@@ -1,0 +1,6 @@
+envs/
+.idea/
+.hydra
+__pycache__/
+*.log
+data/
