@@ -47,6 +47,7 @@ class DSpritesImages(Dataset):
         }
     }
 
+    dsprites_path = Path(os.getenv('DSPRITES', default=None)) or DATA / 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5'
     dsprites_images = None
     dsprites_features = None
 
@@ -63,8 +64,7 @@ class DSpritesImages(Dataset):
         self.width = width
         self.height = height
         self.input_channels = input_channels
-        dsprites_path = Path(os.getenv('DSPRITES', default=None)) or DATA / 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5'
-        if not dsprites_path.exists():
+        if not self.dsprites_path.exists():
             raise FileNotFoundError('Please download the dataset from {} and place it in {}'
                                     .format('https://github.com/deepmind/dsprites-dataset', DATA))
         index_path = DATA / 'dsprites_index.npy'
@@ -80,7 +80,7 @@ class DSpritesImages(Dataset):
         self.dataset_len = splits[split + 1] - splits[split]
 
         # load hdf5 file
-        self.dsprites: h5py.File = h5py.File(dsprites_path, 'r')
+        self.dsprites = h5py.File(self.dsprites_path, 'r')
         if DSpritesImages.dsprites_images is None:
             print('Preloading images')
             DSpritesImages.dsprites_images = self.dsprites['imgs'][:]
@@ -133,6 +133,12 @@ class DSpritesImages(Dataset):
                     result[feature] = torch.tensor(result[feature], dtype=torch.float)
         return result
 
+    @classmethod(f)
+    def load_random_single_image(cls, splits: List[Union[int, float]], split: Union[int, Literal['train', 'val', 'test']]):
+        dsprites = h5py.File(cls.dsprites_path, 'r')
+        image = torch.tensor(dsprites['imgs'][index]).float()
+        image = image.view(1, 64, 64)
+        return image
 
 if __name__ == '__main__':
     dsprites_path = os.getenv('DSPRITES', default=None) or DATA / 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5'
