@@ -48,17 +48,21 @@ class DSpritesImages(Dataset):
     }
 
     dsprites_path = Path(os.getenv('DSPRITES', default=None)) or DATA / 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5'
+    dsprites_index_path = DATA / 'dsprites_index.npy'
     dsprites_images = None
     dsprites_features = None
+
+    def _get_i_split(self, split, splits):
+        assert split in ['train', 'val', 'test'] or isinstance(split, int), split
+        split = split if isinstance(split, int) else ['train', 'val', 'test'].index(split)
+        assert 0 <= split < len(splits), f'{split=} must be between 0 and {len(splits)=}'
+        
+        return split
 
     def __init__(self, splits: List[Union[int, float]],  split: Union[int, Literal['train', 'val', 'test']],
                  load_features: bool = False, width: int = 64, height: int = 64, input_channels: int = 1):
         self._assert_splits(splits)
-
-        assert split in ['train', 'val', 'test'] or isinstance(split, int), split
-        split = split if isinstance(split, int) else ['train', 'val', 'test'].index(split)
-        assert 0 <= split < len(splits), f'{split=} must be between 0 and {len(splits)=}'
-
+        split = self._get_i_split(split, splits)
 
         self.load_features = load_features
         self.width = width
@@ -67,16 +71,15 @@ class DSpritesImages(Dataset):
         if not self.dsprites_path.exists():
             raise FileNotFoundError('Please download the dataset from {} and place it in {}'
                                     .format('https://github.com/deepmind/dsprites-dataset', DATA))
-        index_path = DATA / 'dsprites_index.npy'
-        if not index_path.exists():
+        if not self.dsprites_index_path.exists():
             print('creating index')
             dsprites_index = np.arange(737280)
             for _ in range(20): np.random.shuffle(dsprites_index)
-            np.save(index_path, dsprites_index)
-            print('index saved in {}'.format(index_path))
-        dsprites_index = np.load(index_path)
+            np.save(self.dsprites_index_path, dsprites_index)
+            print('index saved in {}'.format(self.dsprites_index_path))
+        dsprites_index = np.load(self.dsprites_index_path)
         print(f'{splits =}')
-        splits.insert(0, 0)
+        if splits[0] != 0: splits.insert(0, 0)
         self.dataset_len = splits[split + 1] - splits[split]
 
         # load hdf5 file
@@ -100,6 +103,10 @@ class DSpritesImages(Dataset):
         if load_features:
             self.dsprites_features = self.dsprites_features[splits[split]:splits[split + 1]]
         print('Done')
+
+    def dataset_indices(self, splits: List[int], split: int) -> slice:
+        if splits[0] != 0: splits.insert(0, 0)
+        return slice(splits[split], splits[split + 1])
 
     def _assert_splits(self, splits: List[Union[int, float]]):
         assert 1 <= len(splits) <= 3, 'splits must be a list of 1, 2 or 3 elements (train, val, test)'
@@ -135,8 +142,20 @@ class DSpritesImages(Dataset):
 
     @classmethod(f)
     def load_random_single_image(cls, splits: List[Union[int, float]], split: Union[int, Literal['train', 'val', 'test']]):
+        """
+        Load a random image from a split of the dataset.
+        :param splits: indexes of splits (train, val, test)
+        :param split: split to load from
+        :return: image
+        """
+        self._assert_splits(splits)
+        split = self._get_i_split(split, splits)
+        i_split = np.load(self.dsprites_index_path)
+        i_split = i_split[splits[split]:splits[split + 1]]
+        i = np.random.choice(i_split)
+
         dsprites = h5py.File(cls.dsprites_path, 'r')
-        image = torch.tensor(dsprites['imgs'][index]).float()
+        image = torch.tensor(dsprites['imgs'][i]).float()
         image = image.view(1, 64, 64)
         return image
 
