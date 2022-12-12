@@ -1,6 +1,7 @@
 envs/
 .idea/
-.hydra
-__pycache__/
 *.log
+.hydra/
+__pycache__/
+*.py[cod]
 data/
