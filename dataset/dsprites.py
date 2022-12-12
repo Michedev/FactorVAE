@@ -52,23 +52,12 @@ class DSpritesImages(Dataset):
 
     def __init__(self, splits: List[Union[int, float]],  split: Union[int, Literal['train', 'val', 'test']],
                  load_features: bool = False, width: int = 64, height: int = 64, input_channels: int = 1):
-        assert 1 <= len(splits) <= 3, 'splits must be a list of 1, 2 or 3 elements (train, val, test)'
-        if isinstance(splits[0], int):
-            assert all(isinstance(split, int) for split in splits), splits
-            assert 1 <= sum(splits) <= 737280, f'splits {sum(splits)} must sum to a number between 1 and 737280'
-        else:
-            # splits are percentages
-            assert all(isinstance(split, float) for split in splits), splits
-            assert 0 < sum(splits) <= 1, f'splits {sum(splits)} must sum to a number between 0 and 1'
-            for i in range(len(splits)):
-                if i > 0:
-                    splits[i] = int(splits[i] * 737280 + splits[i - 1])
-                else:
-                    splits[i] = int(splits[i] * 737280)
-            splits[-1] = min(splits[-1], 737280)
+        self._assert_splits(splits)
+
         assert split in ['train', 'val', 'test'] or isinstance(split, int), split
         split = split if isinstance(split, int) else ['train', 'val', 'test'].index(split)
         assert 0 <= split < len(splits), f'{split=} must be between 0 and {len(splits)=}'
+
 
         self.load_features = load_features
         self.width = width
@@ -91,7 +80,7 @@ class DSpritesImages(Dataset):
         self.dataset_len = splits[split + 1] - splits[split]
 
         # load hdf5 file
-        self.dsprites = h5py.File(dsprites_path, 'r')
+        self.dsprites: h5py.File = h5py.File(dsprites_path, 'r')
         if DSpritesImages.dsprites_images is None:
             print('Preloading images')
             DSpritesImages.dsprites_images = self.dsprites['imgs'][:]
@@ -111,6 +100,22 @@ class DSpritesImages(Dataset):
         if load_features:
             self.dsprites_features = self.dsprites_features[splits[split]:splits[split + 1]]
         print('Done')
+
+    def _assert_splits(self, splits: List[Union[int, float]]):
+        assert 1 <= len(splits) <= 3, 'splits must be a list of 1, 2 or 3 elements (train, val, test)'
+        if isinstance(splits[0], int):
+            assert all(isinstance(split, int) for split in splits), splits
+            assert 1 <= sum(splits) <= 737280, f'splits {sum(splits)} must sum to a number between 1 and 737280'
+        else:
+            # splits are percentages
+            assert all(isinstance(split, float) for split in splits), splits
+            assert 0 < sum(splits) <= 1, f'splits {sum(splits)} must sum to a number between 0 and 1'
+            for i in range(len(splits)):
+                if i > 0:
+                    splits[i] = int(splits[i] * 737280 + splits[i - 1])
+                else:
+                    splits[i] = int(splits[i] * 737280)
+            splits[-1] = min(splits[-1], 737280)
 
     def __len__(self):
         return self.dataset_len

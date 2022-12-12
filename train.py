@@ -10,7 +10,7 @@ import omegaconf
 from utils.paths import CODE_MODEL, ROOT
 import os
 
-@hydra.main(pkg_resources.resource_filename("factor_vae", 'config'), 'train.yaml')
+@hydra.main('config', 'train.yaml')
 def train(config: DictConfig):
     ckpt = None
 

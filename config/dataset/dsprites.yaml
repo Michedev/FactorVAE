@@ -1,6 +1,6 @@
 # @package _global_
 dataset:
-  _target_: .dataset.dsprites.DSpritesImages
+  _target_: dataset.dsprites.DSpritesImages
   splits: [0.7, 0.15, 0.15]
   width: 64
   height: 64

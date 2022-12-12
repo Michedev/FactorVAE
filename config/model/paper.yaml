@@ -1,4 +1,4 @@
-_target_: .model.FactorVAE
+_target_: model.FactorVAE
 d: 10
 latent_size: 10
 gamma: 6.4
@@ -14,15 +14,15 @@ opt_discriminator:
   lr: 1e-4
   betas: [0.5, 0.9]
 encoder:
-    _target_: .model.encoder_decoder.dsprites_encoder
+    _target_: model.encoder_decoder.dsprites_encoder
     input_channels: ${dataset.input_channels}
     latent_size: ${model.latent_size}
 decoder:
-    _target_: .model.encoder_decoder.dsprites_decoder
+    _target_: model.encoder_decoder.dsprites_decoder
     latent_size: ${model.latent_size}
     output_channels: ${dataset.input_channels}
 discriminator:
-    _target_: .model.discriminator.make_sequential_discriminator
+    _target_: model.discriminator.make_sequential_discriminator
     input_size: ${model.latent_size}
     hidden_size: 1000
     num_hidden_layers: 5

@@ -182,5 +182,6 @@ class FactorVAE(pl.LightningModule):
     def generate(self, batch_size: int = 1, z: torch.Tensor = None):
         if z is None:
             z = self.prior.sample((batch_size, self.latent_size)).squeeze(-1).to(self.device)
+            print('sample from prior with shape', z.shape)
         assert len(z.shape) == 2, 'z must be a 2D tensor - current shape: {}'.format(z.shape)
         return self.decoder(z).sigmoid()
