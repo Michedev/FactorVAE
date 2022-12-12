@@ -1,7 +1,7 @@
 import os
 import subprocess
 from typing import List, Union, Literal
-
+from omegaconf.dictconfig import DictConfig
 from torch.utils.data import Dataset
 from utils.paths import DATA, ROOT
 import h5py
@@ -52,7 +52,8 @@ class DSpritesImages(Dataset):
     dsprites_images = None
     dsprites_features = None
 
-    def _get_i_split(self, split, splits):
+    @classmethod
+    def _get_i_split(cls, split, splits):
         assert split in ['train', 'val', 'test'] or isinstance(split, int), split
         split = split if isinstance(split, int) else ['train', 'val', 'test'].index(split)
         assert 0 <= split < len(splits), f'{split=} must be between 0 and {len(splits)=}'
@@ -108,7 +109,8 @@ class DSpritesImages(Dataset):
         if splits[0] != 0: splits.insert(0, 0)
         return slice(splits[split], splits[split + 1])
 
-    def _assert_splits(self, splits: List[Union[int, float]]):
+    @classmethod
+    def _assert_splits(cls, splits: List[Union[int, float]]):
         assert 1 <= len(splits) <= 3, 'splits must be a list of 1, 2 or 3 elements (train, val, test)'
         if isinstance(splits[0], int):
             assert all(isinstance(split, int) for split in splits), splits
@@ -140,7 +142,7 @@ class DSpritesImages(Dataset):
                     result[feature] = torch.tensor(result[feature], dtype=torch.float)
         return result
 
-    @classmethod(f)
+    @classmethod
     def load_random_single_image(cls, splits: List[Union[int, float]], split: Union[int, Literal['train', 'val', 'test']]):
         """
         Load a random image from a split of the dataset.
@@ -148,9 +150,10 @@ class DSpritesImages(Dataset):
         :param split: split to load from
         :return: image
         """
-        self._assert_splits(splits)
-        split = self._get_i_split(split, splits)
-        i_split = np.load(self.dsprites_index_path)
+        cls._assert_splits(splits)
+        if splits[0] != 0: splits.insert(0, 0)
+        split = cls._get_i_split(split, splits)
+        i_split = np.load(cls.dsprites_index_path)
         i_split = i_split[splits[split]:splits[split + 1]]
         i = np.random.choice(i_split)
 
@@ -158,6 +161,12 @@ class DSpritesImages(Dataset):
         image = torch.tensor(dsprites['imgs'][i]).float()
         image = image.view(1, 64, 64)
         return image
+
+    @classmethod
+    def load_random_single_image_from_config(cls, dataset_config: DictConfig, split: Union[int, Literal['train', 'val', 'test']]):
+        splits = dataset_config.splits
+        return cls.load_random_single_image(splits, split)
+
 
 if __name__ == '__main__':
     dsprites_path = os.getenv('DSPRITES', default=None) or DATA / 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.hdf5'

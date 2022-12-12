@@ -41,8 +41,8 @@ def main(config: DictConfig):
     ckpt_config = ckpt['ckpt_config']
 
     # load random image from test set
-    dataset = hydra.utils.instantiate(ckpt_config.dataset, split='test')
-    img = dataset[randint(0, len(dataset)-1)]['image'].unsqueeze(0)
+    dataset_class = hydra.utils._locate(path=ckpt_config.dataset['_target_'])
+    img = dataset_class.load_random_single_image_from_config(ckpt_config.dataset, split='test').unsqueeze(0)
 
     # get latent vector
     z_original = model.forward_encoder(img)['post_mu']
