@@ -1,0 +1,7 @@
+checkpoint_path: ???
+dataset_size: 100
+rounds: 1000
+device: cpu
+seed: null
+
+# todo: add more disentanglement methods

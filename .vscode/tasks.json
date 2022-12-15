@@ -27,9 +27,9 @@
                 "python",
                 "traverse.py",
                 "checkpoint_path=saved_models/${input:checkpointPath}",
-                "z_linspace.min=-3",
-                "z_linspace.max=3",
-                "z_linspace.num=10"
+                "z_linspace.min=-1",
+                "z_linspace.max=1",
+                "z_linspace.num=15"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -50,7 +50,23 @@
                 "cwd": "${workspaceFolder}"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "conda:disentangle",
+            "type": "shell",
+            "command": "anaconda-project",
+            "args": [
+                "run",
+                "python",
+                "disentangle.py",
+                "checkpoint_path=saved_models/${input:checkpointPath}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
         }
+
     ],
     "inputs": [
         {
