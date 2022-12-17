@@ -7,16 +7,22 @@
             "label": "conda:train-gpu",
             "type": "shell",
             "command": "anaconda-project",
-            "args": ["run", "train-gpu"],
+            "args": [
+                "run",
+                "train-gpu"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}"
-            },
+            }
         },
         {
             "label": "conda:train-cpu",
             "type": "shell",
             "command": "anaconda-project",
-            "args": ["run", "train-cpu"]
+            "args": [
+                "run",
+                "train-cpu"
+            ]
         },
         {
             "label": "conda:traverse",
@@ -65,6 +71,19 @@
                 "cwd": "${workspaceFolder}"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "conda:tensorboard",
+            "type": "shell",
+            "command": "anaconda-project",
+            "args": [
+                "run",
+                "tensorboard"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
         }
 
     ],
@@ -76,11 +95,7 @@
             "args": {
                 "command": "ls saved_models/",
                 "cwd": "${workspaceFolder}",
-                "env": {
-                    "WORKSPACE": "${workspaceFolder[0]}",
-                    "FILE": "${file}",
-                    "PROJECT": "${workspaceFolderBasename}"
-                }
+
             }
                   
         }

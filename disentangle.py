@@ -6,6 +6,9 @@ from utils.experiment_tools import load_checkpoint_model_eval
 from utils.paths import ROOT
 import yaml
 
+"""
+Compute disentaglement scores for a given model checkpoint, then save the results in the checkpoint folder
+"""
 
 def save_results(checkpoint_path, factor_vae_score):
     """

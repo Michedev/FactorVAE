@@ -1,5 +1,4 @@
 from random import randint
-
 import hydra
 import numpy as np
 import pytorch_lightning as pl
@@ -14,6 +13,7 @@ from utils.experiment_tools import load_checkpoint_model_eval
 
 
 def plot_traverse(model, config, z_original, ckpt_folder):
+    assert z_original.shape[0] == 1, 'only one image at a time'
     fig, axs = plt.subplots(model.latent_size, config.z_linspace.num, figsize=(
         config.z_linspace.num, model.latent_size))
     for i in range(model.latent_size):
@@ -31,7 +31,7 @@ def plot_traverse(model, config, z_original, ckpt_folder):
             if j == 0:
                 axs[i, j].set_ylabel('$z_{fff}$'.replace('fff', str(i + 1)))
     # set figure x label
-    fig.text(0.5, 0.04, 'delta $z_i$', ha='center')
+    fig.text(0.5, 0.01, '$\Delta z_i$', fontsize='x-large')
     fig.tight_layout()
     fig.savefig(ckpt_folder / 'traverse.png')
 
@@ -54,7 +54,7 @@ def main(config: DictConfig):
         ckpt_config.dataset, split='test').unsqueeze(0)
 
     # get latent vector
-    z_original = model.forward_encoder(img)['post_mu']
+    z_original = model.forward_encoder(img)['z']
 
     plot_traverse(model, config, z_original, ckpt_folder)
 
