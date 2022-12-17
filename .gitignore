@@ -5,3 +5,4 @@ envs/
 __pycache__/
 *.py[cod]
 data/
+.vscode/settings.json
