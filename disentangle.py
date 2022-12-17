@@ -1,7 +1,7 @@
 import torch
 import pytorch_lightning as pl
 import hydra
-from disentanglement.factor_vae import disentangle
+from disentanglement.factor_vae import disentangle as factor_vae_disentangle
 from utils.experiment_tools import load_checkpoint_model_eval
 from utils.paths import ROOT
 import yaml
@@ -31,12 +31,14 @@ def main(config):
     model = load_checkpoint_model_eval(ROOT / config.checkpoint_path, config.seed, config.device)['model']
     model.eval()
     model.freeze()
-    factor_vae_score = disentangle(model, config.rounds, config.dataset_size)
+    print('loaded model from', str(ROOT / config.checkpoint_path))
+    if config.enable_factor_vae:
+        factor_vae_score = factor_vae_disentangle(model, **config.factor_vae)
 
-    print('=' * 150)
-    print('Factor VAE disentanglement score:', factor_vae_score)
-    print('=' * 150)
-    save_results(ROOT / config.checkpoint_path, factor_vae_score)
+        print('=' * 150)
+        print('Factor VAE disentanglement score:', factor_vae_score)
+        print('=' * 150)
+        save_results(ROOT / config.checkpoint_path, factor_vae_score)
 
 
 if __name__ == '__main__':

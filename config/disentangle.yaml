@@ -1,7 +1,10 @@
 checkpoint_path: ???
-dataset_size: 100
-rounds: 1000
 device: cpu
 seed: null
+enable_factor_vae: true
+factor_vae:
+  dataset_size: 100
+  rounds: 1000
+
 
 # todo: add more disentanglement methods
