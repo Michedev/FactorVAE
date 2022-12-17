@@ -10,6 +10,7 @@ import yaml
 Compute disentaglement scores for a given model checkpoint, then save the results in the checkpoint folder
 """
 
+
 def save_results(checkpoint_path, factor_vae_score):
     """
     Update the results of the experiment in a yaml file 

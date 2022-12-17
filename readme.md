@@ -71,5 +71,5 @@ Then, inside _{model_folder}_ there will be the file _generated.png_ containing 
 
 ## TODO
 
-- Add disentanglement evaluation
+- ~~Add disentanglement evaluation~~
 - ~~Add generation procedure~~
