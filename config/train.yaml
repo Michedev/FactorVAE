@@ -18,7 +18,7 @@ enable_beta_warmup: false
 beta_warmup:
   _target_: .callbacks.beta_warmup.BetaWarmup
   beta_start: 0.0
-  beta_end: 1.0
+  beta_end: 5.0
   delta: 0.1
   steps: 5_000
 
