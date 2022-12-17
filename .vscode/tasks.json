@@ -9,7 +9,8 @@
             "command": "anaconda-project",
             "args": [
                 "run",
-                "train-gpu"
+                "train-gpu",
+                "dataset=${input:dataset}"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -21,7 +22,8 @@
             "command": "anaconda-project",
             "args": [
                 "run",
-                "train-cpu"
+                "train-cpu",
+                "dataset=${input:dataset}"
             ]
         },
         {
@@ -65,7 +67,8 @@
                 "run",
                 "python",
                 "disentangle.py",
-                "checkpoint_path=saved_models/${input:checkpointPath}"
+                "checkpoint_path=saved_models/${input:checkpointPath}",
+                "device=${input:device}",
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -96,8 +99,26 @@
                 "command": "ls saved_models/",
                 "cwd": "${workspaceFolder}",
 
-            }
-                  
+            }      
+        },
+        {
+            "id": "dataset",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "ls config/dataset | sed 's/.yaml//'",
+                "cwd": "${workspaceFolder}",
+
+            }      
+        },
+        {
+            "id": "device",
+            "type": "pickString",
+            "description": "Device to use",
+            "options": [
+                "cpu",
+                "gpu"
+            ]
         }
     ]
 }
